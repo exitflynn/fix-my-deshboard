@@ -5,10 +5,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"net/url"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -99,33 +97,18 @@ func renderMarkdown(s string) template.HTML {
 	return template.HTML(sanitizer.SanitizeBytes(buf.Bytes()))
 }
 
-func issuesURL(state, label string, page int) string {
-	q := url.Values{}
-	if state == "closed" {
-		q.Set("state", "closed")
-	}
-	if label != "" {
-		q.Set("label", label)
-	}
-	if page > 1 {
-		q.Set("page", strconv.Itoa(page))
-	}
-	if len(q) == 0 {
-		return "/issues"
-	}
-	return "/issues?" + q.Encode()
-}
-
 // moderators are the ADMIN_USERS usernames; their posts get a "Moderator" badge.
 var moderators []string
 
 var funcs = template.FuncMap{
 	"md":           renderMarkdown,
 	"labelStyle":   labelStyle,
-	"issuesURL":    issuesURL,
 	"join":         strings.Join,
 	"hasPrefix":    strings.HasPrefix,
 	"isAuthor":     isAuthor,
+	"labelURL":     labelURL,
+	"siteURL":      siteURL,
+	"authorURL":    authorURL,
 	"labelName":    labelName,
 	"publicLabels": publicLabels,
 	"siteHref":     siteHref,

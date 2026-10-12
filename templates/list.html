@@ -1,38 +1,64 @@
 {{define "content"}}
-<p class="kicker">The public record</p>
-<h1 class="page-title">Issues</h1>
-{{with .Label}}
-<p class="mt-2 small muted">Labelled {{template "labelText" .}} · <a href="{{issuesURL $.State "" 1}}">show all</a></p>
-{{end}}
+<h1 class="page-title mb-2">Issues</h1>
 
-<nav class="tabs" aria-label="Issue state">
-  <a{{if eq .State "open"}} class="active"{{end}} href="{{issuesURL "open" .Label 1}}">Still broken · {{.OpenCount}}</a>
-  <a{{if eq .State "closed"}} class="active"{{end}} href="{{issuesURL "closed" .Label 1}}">Closed · {{.ClosedCount}}</a>
-</nav>
+<form class="search" action="/issues" method="get" role="search">
+  <input class="input" type="search" name="q" value="{{.Q}}" aria-label="Search issues" placeholder="Search issues"
+         autocapitalize="off" autocomplete="off" spellcheck="false">
+  <button class="btn" type="submit">Search</button>
+</form>
+<p class="search-help">
+  Filter with <code>label:outage</code> <code>site:irctc</code> <code>author:anonymous</code> <code>sort:seen</code>
+  {{if .Filtered}}· <a href="/issues">Clear search and filters</a>{{end}}
+</p>
 
-<ul class="issue-list">
+<div class="box">
+  <div class="box-head">
+    <nav class="states" aria-label="Status">
+      <a{{if eq .Filter.State "open"}} class="on"{{end}} href="{{.OpenURL}}"><span class="dot open"></span>{{.OpenCount}} Still broken</a>
+      <a{{if eq .Filter.State "closed"}} class="on"{{end}} href="{{.ClosedURL}}"><span class="dot closed"></span>{{.ClosedCount}} Closed</a>
+    </nav>
+    <div class="menus">
+      <details class="menu">
+        <summary>Label</summary>
+        <div class="menu-pop">
+          {{range .LabelMenu}}
+          <a href="{{.URL}}"{{if .On}} aria-current="true"{{end}}><span class="check">{{if .On}}✓{{end}}</span><span class="dot" style="{{labelStyle .Label}}"></span>{{.Name}}</a>
+          {{else}}<span class="menu-empty">No labels yet</span>{{end}}
+        </div>
+      </details>
+      <details class="menu">
+        <summary>Sort</summary>
+        <div class="menu-pop">
+          {{range .SortMenu}}<a href="{{.URL}}"{{if .On}} aria-current="true"{{end}}><span class="check">{{if .On}}✓{{end}}</span>{{.Name}}</a>{{end}}
+        </div>
+      </details>
+    </div>
+  </div>
+
   {{range .Issues}}
-  <li class="issue-item">
-    <span class="dot {{.Status}}" title="{{.Status}}"></span>
+  <div class="box-row">
+    <span class="dot {{.Status}}" title="{{if eq .Status "open"}}Still broken{{else}}Closed{{end}}"></span>
     <div class="grow">
-      <div class="site-prefix">{{siteName .Site}}</div>
-      <a class="title" href="/issues/{{.ID}}">{{.Title}}</a>
-      <div class="meta">
-        <span>#{{.ID}} · seen {{day .SeenAt}}{{with .AuthorName}} · @{{.}}{{end}}</span>
-        {{range publicLabels .Labels}}{{template "labelText" .}}{{end}}
+      <div class="row-title">
+        <a href="/issues/{{.ID}}">{{.Title}}</a>
+        {{range publicLabels .Labels}}{{template "label" .}}{{end}}
+      </div>
+      <div class="row-meta">
+        #{{.ID}} · <a href="{{siteURL .Site}}">{{siteName .Site}}</a> · seen {{day .SeenAt}} ·
+        {{with .AuthorName}}<a href="{{authorURL .}}">@{{.}}</a>{{else}}anonymous{{end}}
       </div>
     </div>
-    {{if .CommentCount}}<a class="comments" href="/issues/{{.ID}}#comments">{{.CommentCount}} {{if eq .CommentCount 1}}comment{{else}}comments{{end}}</a>{{end}}
-  </li>
+    {{if .CommentCount}}<a class="row-comments" href="/issues/{{.ID}}#comments" aria-label="{{.CommentCount}} comments">{{template "icon-comment"}} {{.CommentCount}}</a>{{end}}
+  </div>
   {{else}}
-  <li class="empty">Nothing here yet.</li>
+  <div class="box-empty">No issues match{{if .Filtered}} this search. <a href="/issues">Clear search and filters</a>{{end}}.</div>
   {{end}}
-</ul>
+</div>
 
 {{if or .PrevURL .NextURL}}
 <nav class="pagination" aria-label="Pagination">
-  {{with .PrevURL}}<a class="btn btn-sm" href="{{.}}">← Newer</a>{{else}}<span></span>{{end}}
-  {{with .NextURL}}<a class="btn btn-sm" href="{{.}}">Older →</a>{{end}}
+  {{with .PrevURL}}<a class="btn btn-sm" href="{{.}}">← Previous</a>{{else}}<span></span>{{end}}
+  {{with .NextURL}}<a class="btn btn-sm" href="{{.}}">Next →</a>{{end}}
 </nav>
 {{end}}
 {{end}}

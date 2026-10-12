@@ -65,41 +65,6 @@ func scanComment(row pgx.Row, extra ...any) (Comment, error) {
 
 const pageSize = 25
 
-// queryIssues returns one page of issues, newest first, and whether a next page exists.
-func (a *app) queryIssues(ctx context.Context, state, label string, page int) ([]Issue, bool, error) {
-	rows, err := a.db.Query(ctx, `
-		SELECT `+issueCols+`,
-		       (SELECT count(*) FROM comments c WHERE c.issue_id = i.id AND c.status = 'visible')
-		`+issueFrom+`
-		WHERE i.status = $1 AND ($2 = '' OR $2 = ANY (i.labels))
-		ORDER BY i.id DESC
-		LIMIT $3 OFFSET $4`,
-		state, label, pageSize+1, (page-1)*pageSize)
-	if err != nil {
-		return nil, false, err
-	}
-	issues, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (Issue, error) {
-		var count int
-		i, err := scanIssue(row, &count)
-		i.CommentCount = count
-		return i, err
-	})
-	if err != nil {
-		return nil, false, err
-	}
-	if len(issues) > pageSize {
-		return issues[:pageSize], true, nil
-	}
-	return issues, false, nil
-}
-
-func (a *app) countIssues(ctx context.Context, label string) (open, closed int, err error) {
-	err = a.db.QueryRow(ctx, `
-		SELECT count(*) FILTER (WHERE status = 'open'), count(*) FILTER (WHERE status = 'closed')
-		FROM issues WHERE $1 = '' OR $1 = ANY (labels)`, label).Scan(&open, &closed)
-	return
-}
-
 // issue returns any issue by id. Callers decide whether a removed one may be shown.
 func (a *app) issue(ctx context.Context, id int64) (Issue, error) {
 	return scanIssue(a.db.QueryRow(ctx, `SELECT `+issueCols+issueFrom+`WHERE i.id = $1`, id))

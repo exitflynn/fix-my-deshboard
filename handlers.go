@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +16,7 @@ import (
 )
 
 func (a *app) home(w http.ResponseWriter, r *http.Request) {
-	latest, _, err := a.queryIssues(r.Context(), "open", "", 1)
+	latest, _, err := a.searchIssues(r.Context(), parseFilter(defaultQuery), 1)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -23,35 +24,57 @@ func (a *app) home(w http.ResponseWriter, r *http.Request) {
 	a.render(w, r, http.StatusOK, "home", data{"Home": true, "Latest": latest[:min(3, len(latest))]})
 }
 
+type menuItem struct {
+	Name, Label, URL string
+	On               bool
+}
+
 func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	state := "open"
-	if q.Get("state") == "closed" {
-		state = "closed"
+	query := defaultQuery
+	if q.Has("q") {
+		query = q.Get("q")
 	}
-	label := strings.TrimSpace(q.Get("label"))
+	f := parseFilter(query)
 	page, _ := strconv.Atoi(q.Get("page"))
 	page = max(page, 1)
 
-	issues, hasNext, err := a.queryIssues(r.Context(), state, label, page)
+	ctx := r.Context()
+	issues, hasNext, err := a.searchIssues(ctx, f, page)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	open, closed, err := a.countIssues(r.Context(), label)
+	open, closed, err := a.countByState(ctx, f)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
+	}
+	labels, err := a.usedLabels(ctx)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+
+	var labelMenu, sortMenu []menuItem
+	for _, l := range labels {
+		labelMenu = append(labelMenu, menuItem{Name: labelName(l), Label: l, On: slices.Contains(f.Labels, l), URL: f.toggleLabel(l).URL(1)})
+	}
+	for _, s := range sorts {
+		sortMenu = append(sortMenu, menuItem{Name: s.Name, On: f.Sort == s.Key, URL: f.withSort(s.Key).URL(1)})
 	}
 	d := data{
-		"Title": "Issues", "Issues": issues, "State": state, "Label": label,
+		"Title": "Issues", "Issues": issues, "Filter": f, "Q": f.String(),
+		"Filtered":  f.String() != defaultQuery,
 		"OpenCount": open, "ClosedCount": closed,
+		"OpenURL": f.withState("open").URL(1), "ClosedURL": f.withState("closed").URL(1),
+		"LabelMenu": labelMenu, "SortMenu": sortMenu,
 	}
 	if page > 1 {
-		d["PrevURL"] = issuesURL(state, label, page-1)
+		d["PrevURL"] = f.URL(page - 1)
 	}
 	if hasNext {
-		d["NextURL"] = issuesURL(state, label, page+1)
+		d["NextURL"] = f.URL(page + 1)
 	}
 	a.render(w, r, http.StatusOK, "list", d)
 }

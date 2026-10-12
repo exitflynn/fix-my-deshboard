@@ -4,11 +4,14 @@
 - Landing page: "babu-log" wordmark (monospace text), tagline "The bug tracker for government websites.", buttons **File an Issue** and **Explore Issues**.
 - File an Issue: anonymous or logged in. No contact field.
 - Accounts (optional): Sign in with Google, username chosen once on first login.
-- Explore Issues: GitHub-style list with Open/Closed tabs and label filter (`?label=irctc`), plus issue page with comments.
+- Explore Issues: bordered GitHub-style list with GitHub-like search in one box (`?q=`):
+  `is:open|closed`, `label:x` (repeatable, all must match), `author:name|anonymous`, `site:text`,
+  `sort:oldest|comments|seen`, plus free words (title, site, what the site said, details; ILIKE).
+  Status counts and Label/Sort menus (`<details>`, no JS) in the list header. Default query `is:open`.
 - Issues and comments are public as soon as they're posted. Admin removes things afterwards.
 - New issues get the `triage` label; admin swaps it for `accepted` (one button).
 
-Not in v1: Wayback/archiving, hashing, automated checks, reproductions, search, emails, profiles, edit history, i18n.
+Not in v1: Wayback/archiving, hashing, automated checks, reproductions, full-text ranking, emails, profiles, edit history, i18n.
 
 ## Stack
 - One Go binary, `html/template`, a small hand-written stylesheet (cream background, Newsreader serif + Instrument Sans, self-hosted fonts). Postgres.
