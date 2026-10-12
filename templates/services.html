@@ -1,0 +1,22 @@
+{{define "content"}}
+<h1 class="page-title mb-2">Browse by service</h1>
+<p class="muted mb-3">Every government service with reported problems, the most broken first.</p>
+
+<div class="box svc-table">
+  <div class="box-head svc-grid">
+    <span>Service</span>
+    <span class="num">Still broken</span>
+    <span class="num">Closed</span>
+  </div>
+  {{range .Services}}
+  <div class="box-row svc-grid">
+    <a class="svc-name" href="{{.OpenURL}}">{{.Name}}</a>
+    <a class="num" href="{{.OpenURL}}"><span class="dot open"></span>{{.Open}}</a>
+    <a class="num muted" href="{{.ClosedURL}}">{{.Closed}}</a>
+  </div>
+  {{else}}
+  <div class="box-empty">No services yet. Admins set an issue's service while triaging.</div>
+  {{end}}
+</div>
+{{with .Unassigned}}<p class="small muted mt-2">{{.}} still-broken issue{{if ne . 1}}s{{end}} {{if eq . 1}}hasn't{{else}}haven't{{end}} been assigned a service yet.</p>{{end}}
+{{end}}

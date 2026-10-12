@@ -1,5 +1,5 @@
 {{define "layout"}}<!doctype html>
-<html lang="en"{{with .Theme}} data-theme="{{.}}"{{end}}>
+<html lang="en"{{with .Theme}} data-theme="{{.}}"{{end}}{{if .Home}} class="hero-visible"{{end}}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,21 +11,23 @@
   {{with .Image}}<meta property="og:image" content="{{.}}"><meta name="twitter:card" content="summary_large_image">{{end}}
   <link rel="preload" href="/static/fonts/newsreader-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/site.css">
+  {{if .Home}}
+  <script src="/static/nav.js" defer></script>
+  <noscript><style>.hero-visible .site-header .wordmark { opacity: 1; visibility: visible; transform: none; }</style></noscript>
+  {{end}}
 </head>
 <body>
-{{if not .Home}}
-<header class="site-header">
-  <a href="/" class="wordmark">babu-log</a>
-  <nav class="site-nav" aria-label="Main">
-    <a href="/issues"{{if and .Path (hasPrefix .Path "/issues") (not (hasPrefix .Path "/issues/new"))}} class="active"{{end}}>Issues</a>
-    {{if and .User .User.IsAdmin}}<a href="/admin"{{if hasPrefix .Path "/admin"}} class="active"{{end}}>Admin</a>{{end}}
-  </nav>
-  <div class="header-end">{{template "account" .}}</div>
-</header>
-<hr class="rule">
-<main class="page">{{template "content" .}}</main>
-{{else}}
-<main>{{template "content" .}}</main>
-{{end}}
+<div class="topbar">
+  <header class="site-header">
+    <a href="/" class="wordmark">babu-log</a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="/"{{if or .Home (and .Path (hasPrefix .Path "/issues/") (not (hasPrefix .Path "/issues/new")))}} class="active"{{end}}>Issues</a>
+      <a href="/services"{{if and .Path (hasPrefix .Path "/services")}} class="active"{{end}}>Browse by service</a>
+      {{if and .User .User.IsAdmin}}<a href="/admin"{{if hasPrefix .Path "/admin"}} class="active"{{end}}>Admin</a>{{end}}
+    </nav>
+    <div class="header-end">{{template "account" .}}</div>
+  </header>
+</div>
+<main class="page{{if .Home}} page-wide{{end}}">{{template "content" .}}</main>
 </body>
 </html>{{end}}

@@ -119,7 +119,7 @@ var funcs = template.FuncMap{
 	"day":         func(t time.Time) string { return t.In(ist).Format("2 Jan 2006") },
 }
 
-var pageNames = []string{"home", "list", "new", "issue", "edit_issue", "edit_comment", "login", "welcome",
+var pageNames = []string{"list", "services", "new", "issue", "edit_issue", "edit_comment", "login", "welcome",
 	"error", "admin", "admin_issue"}
 
 func parsePages() (map[string]*template.Template, error) {

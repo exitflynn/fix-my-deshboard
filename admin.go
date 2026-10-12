@@ -156,7 +156,7 @@ func (a *app) adminIssueAction(w http.ResponseWriter, r *http.Request) {
 // (admin pages or a public issue page), or fallback.
 func adminBack(r *http.Request, fallback string) string {
 	back := r.FormValue("back")
-	if strings.HasPrefix(back, "/admin") || strings.HasPrefix(back, "/issues") {
+	if back == "/" || strings.HasPrefix(back, "/?") || strings.HasPrefix(back, "/admin") || strings.HasPrefix(back, "/issues") {
 		return safeNext(back)
 	}
 	return fallback

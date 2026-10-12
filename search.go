@@ -135,9 +135,9 @@ func (f filter) URL(page int) string {
 		v.Set("page", strconv.Itoa(page))
 	}
 	if len(v) == 0 {
-		return "/issues"
+		return "/"
 	}
-	return "/issues?" + v.Encode()
+	return "/?" + v.Encode()
 }
 
 func (f filter) withClosed(c bool) filter { f.Closed = c; return f }
@@ -307,4 +307,36 @@ func guessService(site string) string {
 		}
 	}
 	return ""
+}
+
+type serviceCount struct {
+	Name               string
+	Open, Closed       int
+	OpenURL, ClosedURL string
+}
+
+// serviceCounts lists every service with its still-broken and closed counts, most broken first,
+// plus how many issues have no service yet.
+func (a *app) serviceCounts(ctx context.Context) ([]serviceCount, int, error) {
+	rows, err := a.db.Query(ctx, `
+		SELECT service, count(*) FILTER (WHERE status = 'open'), count(*) FILTER (WHERE status = 'closed')
+		FROM issues WHERE status <> 'removed' AND service <> ''
+		GROUP BY service
+		ORDER BY 2 DESC, lower(service)`)
+	if err != nil {
+		return nil, 0, err
+	}
+	list, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (serviceCount, error) {
+		var s serviceCount
+		err := row.Scan(&s.Name, &s.Open, &s.Closed)
+		s.OpenURL = filter{Service: s.Name}.URL(1)
+		s.ClosedURL = filter{Service: s.Name, Closed: true}.URL(1)
+		return s, err
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	var unassigned int
+	err = a.db.QueryRow(ctx, `SELECT count(*) FROM issues WHERE status = 'open' AND service = ''`).Scan(&unassigned)
+	return list, unassigned, err
 }

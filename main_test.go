@@ -35,10 +35,10 @@ func TestParseLabels(t *testing.T) {
 func TestSafeNext(t *testing.T) {
 	for in, want := range map[string]string{
 		"/issues/3":         "/issues/3",
-		"//evil.example":    "/issues",
-		"https://evil.test": "/issues",
-		"/\\evil.example":   "/issues",
-		"":                  "/issues",
+		"//evil.example":    "/",
+		"https://evil.test": "/",
+		"/\\evil.example":   "/",
+		"":                  "/",
 	} {
 		if got := safeNext(in); got != want {
 			t.Errorf("safeNext(%q) = %q, want %q", in, got, want)
@@ -63,10 +63,10 @@ func TestParseFilter(t *testing.T) {
 }
 
 func TestFilterURL(t *testing.T) {
-	if got := (filter{}).URL(1); got != "/issues" {
+	if got := (filter{}).URL(1); got != "/" {
 		t.Errorf("default filter URL = %q", got)
 	}
-	if got := (filter{Closed: true}).URL(2); got != "/issues?page=2&state=closed" {
+	if got := (filter{Closed: true}).URL(2); got != "/?page=2&state=closed" {
 		t.Errorf("closed filter URL = %q", got)
 	}
 	f := parseFilter("label:a")

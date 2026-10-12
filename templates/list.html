@@ -1,10 +1,15 @@
 {{define "content"}}
-<div class="list-top">
-  <h1 class="page-title">Issues</h1>
+<section class="hero">
+  <p class="tagline">A public record of what's broken on government websites and apps, with proof.</p>
+  <h1 class="wordmark hero-mark">babu-log</h1>
+</section>
+
+<div class="list-top" id="issues">
+  <h2 class="section-title">Issues</h2>
   <a class="btn btn-primary" href="/issues/new">Report a problem</a>
 </div>
 
-<form class="search" action="/issues" method="get" role="search">
+<form class="search" action="/" method="get" role="search">
   {{if .Filter.Closed}}<input type="hidden" name="state" value="closed">{{end}}
   <button class="search-icon" type="submit" aria-label="Search">{{template "icon-search"}}</button>
   <input class="input" type="search" name="q" value="{{.Q}}" aria-label="Search issues" placeholder="Search all issues"
@@ -12,7 +17,7 @@
 </form>
 <p class="search-help">
   Filter with <code>service:irctc</code> <code>label:outage</code> <code>site:rajasthan</code> <code>author:anonymous</code> <code>sort:seen</code>
-  {{if .Filtered}}· <a href="{{if .Filter.Closed}}/issues?state=closed{{else}}/issues{{end}}">Clear search and filters</a>{{end}}
+  {{if .Filtered}}· <a href="{{if .Filter.Closed}}/?state=closed{{else}}/{{end}}">Clear search and filters</a>{{end}}
 </p>
 
 <div class="box">
@@ -66,7 +71,7 @@
     <div class="row-comments">{{if .CommentCount}}<a href="/issues/{{.ID}}#comments" aria-label="{{.CommentCount}} comments">{{template "icon-comment"}} {{.CommentCount}}</a>{{end}}</div>
   </div>
   {{else}}
-  <div class="box-empty">No issues match{{if .Filtered}} this search. <a href="/issues">Clear search and filters</a>{{end}}.</div>
+  <div class="box-empty">No issues match{{if .Filtered}} this search. <a href="/">Clear search and filters</a>{{end}}.</div>
   {{end}}
 </div>
 

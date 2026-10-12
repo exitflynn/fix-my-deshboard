@@ -15,13 +15,22 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (a *app) home(w http.ResponseWriter, r *http.Request) {
-	latest, _, err := a.searchIssues(r.Context(), filter{}, 1)
+// oldIssuesList keeps old /issues?… links working now that the list lives on the front page.
+func (a *app) oldIssuesList(w http.ResponseWriter, r *http.Request) {
+	target := "/"
+	if r.URL.RawQuery != "" {
+		target += "?" + r.URL.RawQuery
+	}
+	http.Redirect(w, r, target, http.StatusMovedPermanently)
+}
+
+func (a *app) services(w http.ResponseWriter, r *http.Request) {
+	list, unassigned, err := a.serviceCounts(r.Context())
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	a.render(w, r, http.StatusOK, "home", data{"Home": true, "Latest": latest[:min(3, len(latest))]})
+	a.render(w, r, http.StatusOK, "services", data{"Title": "Browse by service", "Services": list, "Unassigned": unassigned})
 }
 
 type menuItem struct {
@@ -69,7 +78,7 @@ func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 		sortMenu = append(sortMenu, menuItem{Name: s.Name, On: f.Sort == s.Key, URL: f.withSort(s.Key).URL(1)})
 	}
 	d := data{
-		"Title": "Issues", "Issues": issues, "Filter": f, "Q": f.String(),
+		"Home": true, "Issues": issues, "Filter": f, "Q": f.String(),
 		"Filtered":  f.String() != "",
 		"OpenCount": open, "ClosedCount": closed,
 		"OpenURL": f.withClosed(false).URL(1), "ClosedURL": f.withClosed(true).URL(1),

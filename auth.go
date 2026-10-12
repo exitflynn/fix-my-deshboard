@@ -127,7 +127,7 @@ func (a *app) requireAdmin(h http.HandlerFunc) http.HandlerFunc {
 // safeNext keeps post-login redirects on this site.
 func safeNext(next string) string {
 	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.HasPrefix(next, "/\\") {
-		return "/issues"
+		return "/"
 	}
 	return next
 }
@@ -236,7 +236,7 @@ var reservedUsernames = []string{"admin", "anonymous", "babu-log", "deleted-user
 
 func (a *app) welcome(w http.ResponseWriter, r *http.Request) {
 	if currentUser(r) != nil {
-		http.Redirect(w, r, "/issues", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	c, err := r.Cookie(sessionCookie)
@@ -275,7 +275,7 @@ func (a *app) welcome(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, "/issues", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // actorKey is what rate limits count against: the account when logged in, otherwise the IP.

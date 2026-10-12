@@ -99,8 +99,9 @@ func (a *app) routes() http.Handler {
 	static, _ := fs.Sub(embedded, "static")
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
 
-	mux.HandleFunc("GET /{$}", a.home)
-	mux.HandleFunc("GET /issues", a.listIssues)
+	mux.HandleFunc("GET /{$}", a.listIssues)
+	mux.HandleFunc("GET /issues", a.oldIssuesList)
+	mux.HandleFunc("GET /services", a.services)
 	mux.HandleFunc("GET /issues/new", a.newIssue)
 	mux.HandleFunc("POST /issues", a.createIssue)
 	mux.HandleFunc("GET /issues/{number}", a.showIssue)

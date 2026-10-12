@@ -1,10 +1,12 @@
 # v1 plan
 
 ## Scope
-- Landing page: "babu-log" wordmark (monospace text), tagline "The bug tracker for government websites.", buttons **File an Issue** and **Explore Issues**.
 - File an Issue: anonymous or logged in. No contact field.
 - Accounts (optional): Sign in with Google, username chosen once on first login.
-- Explore Issues: bordered GitHub-style list. Each row: website/app, then the title and labels, then meta;
+- Front page = issues: tagline and big wordmark, then the issues list (1200px wide). The top bar is sticky;
+  its small logo stays hidden until the big one scrolls away (static/nav.js, the only JS). `/issues` redirects to `/`.
+- Browse by service (`/services`): each service with still-broken and closed counts, linking to its issues.
+- Issues list: bordered GitHub-style list. Each row: website/app, then the title and labels, then meta;
   a Service column on the right. Search box (`?q=`, magnifier icon, no button) takes
   `label:x` (repeatable, all must match), `service:x`, `author:name|anonymous`, `site:text`,
   `sort:oldest|comments|seen`, plus free words (title, site, what the site said, details; ILIKE).
