@@ -2,11 +2,11 @@
 <p class="kicker">The public record</p>
 <h1 class="page-title">Issues</h1>
 {{with .Label}}
-<p class="mt-2 small muted">Labelled <span class="pill" style="{{labelStyle .}}"><span class="dot"></span>{{.}}</span> · <a href="{{issuesURL $.State "" 1}}">show all</a></p>
+<p class="mt-2 small muted">Labelled {{template "labelText" .}} · <a href="{{issuesURL $.State "" 1}}">show all</a></p>
 {{end}}
 
 <nav class="tabs" aria-label="Issue state">
-  <a{{if eq .State "open"}} class="active"{{end}} href="{{issuesURL "open" .Label 1}}">Open · {{.OpenCount}}</a>
+  <a{{if eq .State "open"}} class="active"{{end}} href="{{issuesURL "open" .Label 1}}">Still broken · {{.OpenCount}}</a>
   <a{{if eq .State "closed"}} class="active"{{end}} href="{{issuesURL "closed" .Label 1}}">Closed · {{.ClosedCount}}</a>
 </nav>
 
@@ -15,16 +15,17 @@
   <li class="issue-item">
     <span class="dot {{.Status}}" title="{{.Status}}"></span>
     <div class="grow">
+      <div class="site-prefix">{{siteName .Site}}</div>
       <a class="title" href="/issues/{{.ID}}">{{.Title}}</a>
       <div class="meta">
-        <span>#{{.ID}} · {{day .CreatedAt}}{{with .AuthorName}} · @{{.}}{{end}}</span>
-        {{range .Labels}}{{template "label" .}}{{end}}
+        <span>#{{.ID}} · seen {{day .SeenAt}}{{with .AuthorName}} · @{{.}}{{end}}</span>
+        {{range publicLabels .Labels}}{{template "labelText" .}}{{end}}
       </div>
     </div>
     {{if .CommentCount}}<a class="comments" href="/issues/{{.ID}}#comments">{{.CommentCount}} {{if eq .CommentCount 1}}comment{{else}}comments{{end}}</a>{{end}}
   </li>
   {{else}}
-  <li class="empty">No {{.State}} issues{{if .Label}} with this label{{end}}.</li>
+  <li class="empty">Nothing here yet.</li>
   {{end}}
 </ul>
 

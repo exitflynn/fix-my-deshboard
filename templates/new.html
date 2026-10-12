@@ -1,9 +1,9 @@
 {{define "content"}}
 <div class="page-narrow">
-  <p class="kicker">One broken thing, on one page</p>
-  <h1 class="page-title mb-3">File an Issue</h1>
+  <p class="kicker">One broken thing, on one page or screen</p>
+  <h1 class="page-title mb-3">Report a problem</h1>
 
-  {{with .Errors}}<div class="flash flash-error">{{range .}}<div>{{.}}</div>{{end}}</div>{{end}}
+  {{with .Errors}}<div class="flash flash-error" role="alert">{{range .}}<div>{{.}}</div>{{end}}</div>{{end}}
 
   <form method="post" action="/issues" enctype="multipart/form-data">
     {{template "honeypot"}}
@@ -11,48 +11,43 @@
     <div class="field">
       <label for="title">Title</label>
       <input class="input" id="title" name="title" value="{{.Title}}" required maxlength="200"
-             placeholder="Cancelled trains list says 'temporarily unavailable'">
+             placeholder="e.g. Train status page says 'unavailable'">
+      <p class="note">One line saying what's broken.</p>
     </div>
 
     <div class="field">
-      <label for="website">Website</label>
-      <select class="select" id="website" name="website" required>
-        <option value="">Choose…</option>
-        {{range $.Websites}}<option value="{{.Label}}"{{if eq .Label $.Form.Website}} selected{{end}}>{{.Name}}</option>{{end}}
-      </select>
+      <label for="site">Website link / App name</label>
+      <input class="input" id="site" name="site" value="{{.Site}}" required maxlength="2000" autocapitalize="off">
+      <p class="note">Paste the link from your browser's address bar, or write the app's name.</p>
     </div>
 
     <div class="field">
-      <label for="url">Page address (URL)</label>
-      <input class="input" id="url" name="url" type="url" value="{{.URL}}" required placeholder="https://enquiry.indianrail.gov.in/…">
-    </div>
-
-    <div class="field">
-      <label for="seen_at">When did you see it? (IST)</label>
-      <input class="input auto" id="seen_at" name="seen_at" type="datetime-local" value="{{.SeenAt}}" required>
+      <label for="seen_at">When did you see it?</label>
+      <input class="input" id="seen_at" name="seen_at" type="datetime-local" value="{{.SeenAt}}" required>
+      <p class="note">Indian time.</p>
     </div>
 
     <div class="field">
       <label for="site_said">What the site said</label>
-      <textarea class="textarea mono" id="site_said" name="site_said" rows="3" maxlength="5000"
-                placeholder="Copy the exact words, including any error codes.">{{.SiteSaid}}</textarea>
+      <p class="note mb-2" style="margin-top:0">Type or paste the exact message, including any error code like (80012). Add this, a screenshot below, or both.</p>
+      <textarea class="textarea mono" id="site_said" name="site_said" rows="3" maxlength="5000">{{.SiteSaid}}</textarea>
     </div>
 
     <div class="field">
-      <label for="body">Details</label>
-      <textarea class="textarea" id="body" name="body" rows="6" maxlength="20000"
-                placeholder="What were you trying to do? What happened instead? Markdown supported.">{{.Body}}</textarea>
+      <label for="body">What were you trying to do, and what happened?</label>
+      <textarea class="textarea" id="body" name="body" rows="6" maxlength="20000">{{.Body}}</textarea>
     </div>
     {{end}}
 
     <div class="field">
       <label for="screenshots">Screenshots</label>
+      <p class="note mb-2" style="margin-top:0"><strong>Hide names, PNR, phone and Aadhaar numbers before uploading.</strong></p>
       <input id="screenshots" name="screenshots" type="file" accept="image/png,image/jpeg,image/webp" multiple>
-      <p class="note">Up to 3 images, 5 MB each. Please hide names, PNRs, phone and Aadhaar numbers first.</p>
+      <p class="note">Up to 3 images, 5 MB each. We remove location data from photos.</p>
     </div>
 
-    <p class="small muted">Add what the site said, a screenshot, or both.<br>{{template "postingAs" .}}</p>
-    <button class="btn btn-primary" type="submit">Submit issue</button>
+    <p class="small muted">{{template "postingAs" .}}</p>
+    <button class="btn btn-primary" type="submit">Submit</button>
   </form>
 </div>
 {{end}}

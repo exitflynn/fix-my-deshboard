@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <title>{{with .Title}}{{.}} · {{end}}babu-log</title>
   <meta property="og:site_name" content="babu-log">
-  <meta property="og:title" content="{{with .Title}}{{.}}{{else}}babu-log{{end}}">
+  <meta property="og:title" content="{{with .OGTitle}}{{.}}{{else}}{{with .Title}}{{.}}{{else}}babu-log{{end}}{{end}}">
   {{with .Description}}<meta name="description" content="{{.}}"><meta property="og:description" content="{{.}}">{{end}}
   {{with .Image}}<meta property="og:image" content="{{.}}"><meta name="twitter:card" content="summary_large_image">{{end}}
   <link rel="preload" href="/static/fonts/newsreader-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -26,7 +26,7 @@
     <a href="/login?next={{$.Path}}">Log in</a>
     {{end}}
   </nav>
-  <div class="header-end"><a class="btn btn-primary btn-sm" href="/issues/new">File an Issue</a></div>
+  <div class="header-end"><a class="btn btn-primary btn-sm" href="/issues/new">Report a problem</a></div>
 </header>
 <hr class="rule">
 <main class="page">{{template "content" .}}</main>

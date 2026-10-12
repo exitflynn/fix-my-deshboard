@@ -4,7 +4,8 @@
   <div class="meta">
     {{template "state" .Issue.Status}}
     <span>{{len .Comments}} comment{{if ne (len .Comments) 1}}s{{end}}</span>
-    {{range .Issue.Labels}}{{template "label" .}}{{end}}
+    {{range publicLabels .Issue.Labels}}{{template "label" .}}{{end}}
+    <a class="btn btn-sm share" href="{{.WhatsApp}}" target="_blank" rel="noopener">Share on WhatsApp</a>
   </div>
 </header>
 
@@ -16,10 +17,11 @@
   {{range .Comments}}{{template "comment" (dict "C" . "User" $.User "Back" $back)}}{{else}}<p class="muted mt-2">No comments yet. Seen this too? Say so below.</p>{{end}}
 
   <form method="post" action="/issues/{{.Issue.ID}}/comments" class="reply" id="comment-form">
-    {{with .CommentError}}<div class="flash flash-error">{{.}}</div>{{end}}
+    {{with .CommentError}}<div class="flash flash-error" role="alert">{{.}}</div>{{end}}
     {{template "honeypot"}}
-    <textarea name="body" class="textarea" rows="4" maxlength="10000" required aria-label="Comment"
-              placeholder="Still broken? Seen it fixed? Add details. Markdown supported.">{{with .CommentBody}}{{.}}{{end}}</textarea>
+    <div class="field"><label for="comment-body">Seen this too? Say when and where.</label>
+    <textarea id="comment-body" name="body" class="textarea" rows="4" maxlength="10000" required
+              placeholder="e.g. Still broken on 14 Oct, on the app and the website.">{{with .CommentBody}}{{.}}{{end}}</textarea></div>
     <div class="reply-foot">
       <span class="small muted">{{template "postingAs" .}}</span>
       <button class="btn btn-primary btn-sm" type="submit">Comment</button>

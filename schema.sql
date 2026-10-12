@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS issues (
     id          bigserial PRIMARY KEY, -- also the public issue number
     author_id   bigint REFERENCES users (id), -- NULL = anonymous
     title       text NOT NULL,
-    url         text NOT NULL,
+    site        text NOT NULL, -- website link or app name, as the reporter wrote it
     site_said   text NOT NULL DEFAULT '',
     body        text NOT NULL DEFAULT '',
     seen_at     timestamptz NOT NULL,

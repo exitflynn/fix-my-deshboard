@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="page-narrow">
   <h1 class="page-title mb-3">Edit comment</h1>
-  {{with .Error}}<div class="flash flash-error">{{.}}</div>{{end}}
+  {{with .Error}}<div class="flash flash-error" role="alert">{{.}}</div>{{end}}
   <form method="post" action="/comments/{{.Comment.ID}}/edit">
     <textarea class="textarea" name="body" rows="8" maxlength="10000" required aria-label="Comment">{{.Comment.Body}}</textarea>
     <div class="flex mt-2">

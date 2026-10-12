@@ -17,33 +17,50 @@ import (
 	"github.com/yuin/goldmark/extension"
 )
 
-// Websites offered in the File an Issue form. The chosen one becomes the issue's first label.
-var websites = []struct{ Label, Name string }{
-	{"irctc", "IRCTC"},
-	{"ntes", "NTES"},
-	{"passport-seva", "Passport Seva"},
-	{"other", "Other"},
-}
+// Labels admins commonly use, with colours and public display names. Others work too
+// (grey, shown as written).
+var knownLabels = []string{"triage", "accepted", "outage", "misleading-ui", "stale-data", "broken-table",
+	"irctc", "ntes", "passport-seva"}
 
 var labelColors = map[string]string{
-	"irctc":         "#1d76db",
-	"ntes":          "#0e8a16",
-	"passport-seva": "#5319e7",
-	"other":         "#a8a396",
 	"triage":        "#d4a017",
-	"accepted":      "#0e8a16",
+	"accepted":      "#2f8f46",
 	"outage":        "#d73a4a",
 	"misleading-ui": "#e0a800",
 	"stale-data":    "#6aa6d8",
 	"broken-table":  "#e07b5f",
+	"irctc":         "#1d76db",
+	"ntes":          "#5b8c5a",
+	"passport-seva": "#5319e7",
 }
 
-func knownLabels() []string {
-	var out []string
-	for _, w := range websites {
-		out = append(out, w.Label)
+var labelNames = map[string]string{
+	"accepted":      "Verified ✓",
+	"outage":        "Outage",
+	"misleading-ui": "Misleading UI",
+	"stale-data":    "Stale data",
+	"broken-table":  "Broken table",
+	"irctc":         "IRCTC",
+	"ntes":          "NTES",
+	"passport-seva": "Passport Seva",
+}
+
+func labelName(l string) string {
+	if n, ok := labelNames[l]; ok {
+		return n
 	}
-	return append(out, "triage", "accepted", "outage", "misleading-ui", "stale-data", "broken-table")
+	return l
+}
+
+// publicLabels drops workflow labels the public doesn't need to see.
+func publicLabels(labels []string) []string {
+	var out []string
+	for _, l := range labels {
+		if l != "triage" {
+			out = append(out, l)
+		}
+	}
+	return out
 }
 
 // labelStyle sets the colour of the label's dot.
@@ -103,12 +120,16 @@ func issuesURL(state, label string, page int) string {
 var moderators []string
 
 var funcs = template.FuncMap{
-	"md":         renderMarkdown,
-	"labelStyle": labelStyle,
-	"issuesURL":  issuesURL,
-	"join":       strings.Join,
-	"hasPrefix":  strings.HasPrefix,
-	"isAuthor":   isAuthor,
+	"md":           renderMarkdown,
+	"labelStyle":   labelStyle,
+	"issuesURL":    issuesURL,
+	"join":         strings.Join,
+	"hasPrefix":    strings.HasPrefix,
+	"isAuthor":     isAuthor,
+	"labelName":    labelName,
+	"publicLabels": publicLabels,
+	"siteHref":     siteHref,
+	"siteName":     siteName,
 	"dict": func(kv ...any) map[string]any {
 		m := map[string]any{}
 		for i := 0; i+1 < len(kv); i += 2 {

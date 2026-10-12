@@ -25,8 +25,8 @@ Not in v1: Wayback/archiving, hashing, automated checks, reproductions, search, 
 
 `issues`
 - `id` is the public issue number (removed issues leave gaps)
-- `author_id` (NULL = anonymous), `title`, `url`, `site_said` (exact text, plain), `body` (markdown), `seen_at`, `edited_at`
-- `labels text[]` (website label from the form dropdown + `triage`, the rest set by admin)
+- `author_id` (NULL = anonymous), `title`, `site` (website link or app name, free text), `site_said` (exact text, plain), `body` (markdown), `seen_at`, `edited_at`
+- `labels text[]` (`triage` on creation; admin adds the rest, e.g. `irctc`, `outage`, `accepted`)
 - `screenshots text[]` (paths under `uploads/`)
 - `status`: open | closed | removed
 - `likely_bot bool` (honeypot filled)
@@ -36,8 +36,10 @@ Not in v1: Wayback/archiving, hashing, automated checks, reproductions, search, 
 - `id`, `issue_id`, `author_id` (NULL = anonymous), `body` (markdown), `status` (visible | removed), `likely_bot bool`, `created_at`, `edited_at`
 
 ## Rules
-- Website dropdown: IRCTC, NTES, Passport Seva, Other → becomes a label.
-- Label colours: hard-coded map in Go.
+- Any government website or app can be reported; the form takes a free-text "Website link / App name" (links are clickable).
+- Label colours and display names: hard-coded maps in Go. The public never sees `triage`; `accepted` shows as "Verified ✓". Closing removes `triage`.
+- Public wording: "Report a problem", status "Still broken" / "Closed". Home shows the 3 latest open issues.
+- Issue pages have a no-JS "Share on WhatsApp" link; the screenshot is the share preview image.
 - Closing an issue: admin only, with a comment saying why. Duplicates closed with a link to the original.
 - Screenshots: up to 3, ≤5 MB, PNG/JPEG/WebP, re-encoded to strip EXIF, hidden once the issue is removed. Admin can remove a single screenshot.
 - Comments: text only. Removed comments stay in the database and can be restored.

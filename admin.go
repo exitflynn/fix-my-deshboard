@@ -65,7 +65,7 @@ func (a *app) renderAdminIssue(w http.ResponseWriter, r *http.Request, issue Iss
 	}
 	a.render(w, r, status, "admin_issue", data{
 		"Title": fmt.Sprintf("Admin: #%d", issue.ID), "Issue": issue, "Comments": comments,
-		"ShotBase": "/admin/uploads/", "KnownLabels": strings.Join(knownLabels(), ", "), "Error": errMsg,
+		"ShotBase": "/admin/uploads/", "KnownLabels": strings.Join(knownLabels, ", "), "Error": errMsg,
 	})
 }
 
@@ -119,12 +119,15 @@ func (a *app) adminIssueAction(w http.ResponseWriter, r *http.Request) {
 					return err
 				}
 			}
-			newStatus := map[string]string{"close": "closed", "reopen": "open"}[action]
-			if newStatus == "" {
-				return nil
+			switch action {
+			case "close": // a closed issue no longer needs triage
+				_, err := tx.Exec(ctx, `UPDATE issues SET status = 'closed', labels = array_remove(labels, 'triage') WHERE id = $1`, issue.ID)
+				return err
+			case "reopen":
+				_, err := tx.Exec(ctx, `UPDATE issues SET status = 'open' WHERE id = $1`, issue.ID)
+				return err
 			}
-			_, err := tx.Exec(ctx, `UPDATE issues SET status = $2 WHERE id = $1`, issue.ID, newStatus)
-			return err
+			return nil
 		})
 	default:
 		a.renderError(w, r, http.StatusBadRequest, "Unknown action.")

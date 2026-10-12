@@ -1,10 +1,21 @@
 {{define "content"}}
 <div class="home">
-  <p class="tagline">The bug tracker for <em>government</em> websites.</p>
+  <p class="tagline">A public record of what's broken on government websites and apps, with proof.</p>
   <h1 class="wordmark">babu-log</h1>
   <div class="actions">
-    <a class="btn btn-primary btn-lg" href="/issues/new">File an Issue</a>
-    <a class="btn btn-lg" href="/issues">Explore Issues</a>
+    <a class="btn btn-primary btn-lg" href="/issues/new">Report a problem</a>
+    <a class="btn btn-lg" href="/issues">See all problems</a>
   </div>
+  {{with .Latest}}
+  <section class="latest" aria-label="Recently reported">
+    <h2>Recently reported</h2>
+    {{range .}}
+    <a href="/issues/{{.ID}}">
+      <div class="t">{{.Title}}</div>
+      <div class="m">{{siteName .Site}} · seen {{day .SeenAt}}</div>
+    </a>
+    {{end}}
+  </section>
+  {{end}}
 </div>
 {{end}}

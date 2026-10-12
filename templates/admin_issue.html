@@ -10,7 +10,7 @@
   </div>
 </header>
 
-{{with .Error}}<div class="flash flash-error">{{.}}</div>{{end}}
+{{with .Error}}<div class="flash flash-error" role="alert">{{.}}</div>{{end}}
 
 <form method="post" action="/admin/issues/{{$id}}" class="panel">
   <div class="field">
@@ -60,7 +60,7 @@
 
   {{if not .Issue.Removed}}
   <form method="post" action="/admin/issues/{{$id}}" class="reply">
-    <textarea name="body" class="textarea" rows="4" aria-label="Moderator comment" placeholder="Comment as moderator. Markdown supported. Closing needs a comment saying why."></textarea>
+    <textarea name="body" class="textarea" rows="4" aria-label="Moderator comment" placeholder="Comment as moderator. Closing needs a comment saying why."></textarea>
     <div class="reply-foot">
       <span class="small muted">Posting as <strong>@{{.User.Username}}</strong> · Moderator</span>
       <div class="flex">

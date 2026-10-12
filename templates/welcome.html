@@ -3,7 +3,8 @@
   <p class="kicker">One last step</p>
   <h1 class="page-title mb-2">Choose a username</h1>
   <p class="muted mb-3">This is how your issues and comments will be signed. It can't be changed later, so don't use your real name unless you want to.</p>
-  {{with .Error}}<div class="flash flash-error">{{.}}</div>{{end}}
+  <p class="muted mb-3">We only keep a Google ID number to recognise you. Not your name, email or photo.</p>
+  {{with .Error}}<div class="flash flash-error" role="alert">{{.}}</div>{{end}}
   <form method="post" action="/welcome">
     <div class="field">
       <label for="username">Username</label>

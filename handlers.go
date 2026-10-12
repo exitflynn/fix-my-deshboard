@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -16,7 +15,12 @@ import (
 )
 
 func (a *app) home(w http.ResponseWriter, r *http.Request) {
-	a.render(w, r, http.StatusOK, "home", data{"Home": true})
+	latest, _, err := a.queryIssues(r.Context(), "open", "", 1)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	a.render(w, r, http.StatusOK, "home", data{"Home": true, "Latest": latest[:min(3, len(latest))]})
 }
 
 func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +57,7 @@ func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 }
 
 type issueForm struct {
-	Title, Website, URL, SeenAt, SiteSaid, Body string
+	Title, Site, SeenAt, SiteSaid, Body string
 }
 
 func (a *app) newIssue(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +65,10 @@ func (a *app) newIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) renderNewIssue(w http.ResponseWriter, r *http.Request, status int, f issueForm, errs []string) {
-	a.render(w, r, status, "new", data{"Title": "File an Issue", "Form": f, "Errors": errs, "Websites": websites})
+	if len(errs) > 0 && r.MultipartForm != nil && len(r.MultipartForm.File["screenshots"]) > 0 {
+		errs = append(errs, "Please choose your screenshots again.")
+	}
+	a.render(w, r, status, "new", data{"Title": "Report a problem", "Form": f, "Errors": errs})
 }
 
 func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
@@ -82,8 +89,7 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 
 	f := issueForm{
 		Title:    strings.TrimSpace(r.FormValue("title")),
-		Website:  r.FormValue("website"),
-		URL:      strings.TrimSpace(r.FormValue("url")),
+		Site:     strings.TrimSpace(r.FormValue("site")),
 		SeenAt:   r.FormValue("seen_at"),
 		SiteSaid: strings.TrimSpace(r.FormValue("site_said")),
 		Body:     strings.TrimSpace(r.FormValue("body")),
@@ -112,8 +118,8 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 
 	id, err := a.insertIssue(r.Context(), Issue{
 		AuthorID: userID(r),
-		Title:    f.Title, URL: f.URL, SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
-		Labels: []string{f.Website, "triage"}, Screenshots: shots,
+		Title:    f.Title, Site: f.Site, SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
+		Labels: []string{"triage"}, Screenshots: shots,
 		LikelyBot: r.FormValue("homepage") != "",
 	})
 	if err != nil {
@@ -141,11 +147,10 @@ func isAuthor(u *User, authorID *int64) bool {
 func validateIssue(f issueForm, nFiles int) (time.Time, []string) {
 	var errs []string
 	errs = append(errs, validateTitleBody(f.Title, f.Body)...)
-	if !slices.ContainsFunc(websites, func(w struct{ Label, Name string }) bool { return w.Label == f.Website }) {
-		errs = append(errs, "Pick which website this is about.")
-	}
-	if u, err := url.Parse(f.URL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || len(f.URL) > 2000 {
-		errs = append(errs, "Add the page's full address, starting with http:// or https://.")
+	if f.Site == "" || utf8.RuneCountInString(f.Site) > 2000 {
+		errs = append(errs, "Add the website link or the app's name.")
+	} else if looksLikeURL(f.Site) && siteHref(f.Site) == "" {
+		errs = append(errs, "That link doesn't look right. Copy it from the browser's address bar, or write the app's name.")
 	}
 	seenAt, err := time.ParseInLocation("2006-01-02T15:04", f.SeenAt, ist)
 	if err != nil || seenAt.After(time.Now().Add(10*time.Minute)) {
@@ -207,6 +212,9 @@ func (a *app) renderIssue(w http.ResponseWriter, r *http.Request, issue Issue, s
 		return
 	}
 	d["Title"] = fmt.Sprintf("%s · Issue #%d", issue.Title, issue.ID)
+	d["OGTitle"] = issue.Title // WhatsApp truncates long preview titles
+	link := fmt.Sprintf("%s/issues/%d", strings.TrimRight(a.baseURL, "/"), issue.ID)
+	d["WhatsApp"] = "https://wa.me/?text=" + strings.ReplaceAll(url.QueryEscape(issue.Title+"\n"+link), "+", "%20")
 	d["Issue"] = issue
 	d["Comments"] = comments
 	d["ShotBase"] = "/uploads/"
@@ -225,7 +233,7 @@ func (a *app) renderIssue(w http.ResponseWriter, r *http.Request, issue Issue, s
 }
 
 // editIssue lets an issue's author change the title and details. The evidence
-// (URL, time seen, what the site said, screenshots) is fixed once posted.
+// (website/app, time seen, what the site said, screenshots) is fixed once posted.
 func (a *app) editIssue(w http.ResponseWriter, r *http.Request) {
 	issue, ok := a.loadPublicIssue(w, r)
 	if !ok {
@@ -363,4 +371,32 @@ func (a *app) serveUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	http.ServeFile(w, r, filepath.Join(a.uploadDir, name))
+}
+
+func looksLikeURL(s string) bool {
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+}
+
+// siteHref returns the site as a safe link if it's a valid http(s) URL, or "".
+func siteHref(s string) string {
+	if !looksLikeURL(s) {
+		return ""
+	}
+	u, err := url.Parse(s)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	return u.String()
+}
+
+// siteName is a short form for lists: the host for links ("irctc.co.in"), otherwise the text as written.
+func siteName(s string) string {
+	if href := siteHref(s); href != "" {
+		u, _ := url.Parse(href)
+		return strings.TrimPrefix(u.Hostname(), "www.")
+	}
+	if r := []rune(s); len(r) > 40 {
+		return string(r[:40]) + "…"
+	}
+	return s
 }
