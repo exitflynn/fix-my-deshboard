@@ -111,6 +111,7 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /comments/{id}/edit", a.editComment)
 	mux.HandleFunc("POST /comments/{id}/delete", a.deleteComment)
 	mux.HandleFunc("GET /uploads/{name}", a.serveUpload)
+	mux.HandleFunc("POST /theme", a.setTheme)
 
 	mux.HandleFunc("GET /login", a.login)
 	mux.HandleFunc("GET /auth/callback", a.authCallback)

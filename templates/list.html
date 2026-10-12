@@ -1,21 +1,25 @@
 {{define "content"}}
-<h1 class="page-title mb-2">Issues</h1>
+<div class="list-top">
+  <h1 class="page-title">Issues</h1>
+  <a class="btn btn-primary" href="/issues/new">Report a problem</a>
+</div>
 
 <form class="search" action="/issues" method="get" role="search">
-  <input class="input" type="search" name="q" value="{{.Q}}" aria-label="Search issues" placeholder="Search issues"
+  {{if .Filter.Closed}}<input type="hidden" name="state" value="closed">{{end}}
+  <button class="search-icon" type="submit" aria-label="Search">{{template "icon-search"}}</button>
+  <input class="input" type="search" name="q" value="{{.Q}}" aria-label="Search issues" placeholder="Search all issues"
          autocapitalize="off" autocomplete="off" spellcheck="false">
-  <button class="btn" type="submit">Search</button>
 </form>
 <p class="search-help">
-  Filter with <code>label:outage</code> <code>site:irctc</code> <code>author:anonymous</code> <code>sort:seen</code>
-  {{if .Filtered}}· <a href="/issues">Clear search and filters</a>{{end}}
+  Filter with <code>service:irctc</code> <code>label:outage</code> <code>site:rajasthan</code> <code>author:anonymous</code> <code>sort:seen</code>
+  {{if .Filtered}}· <a href="{{if .Filter.Closed}}/issues?state=closed{{else}}/issues{{end}}">Clear search and filters</a>{{end}}
 </p>
 
 <div class="box">
   <div class="box-head">
     <nav class="states" aria-label="Status">
-      <a{{if eq .Filter.State "open"}} class="on"{{end}} href="{{.OpenURL}}"><span class="dot open"></span>{{.OpenCount}} Still broken</a>
-      <a{{if eq .Filter.State "closed"}} class="on"{{end}} href="{{.ClosedURL}}"><span class="dot closed"></span>{{.ClosedCount}} Closed</a>
+      <a{{if not .Filter.Closed}} class="on"{{end}} href="{{.OpenURL}}"><span class="dot open"></span>{{.OpenCount}} Still broken</a>
+      <a{{if .Filter.Closed}} class="on"{{end}} href="{{.ClosedURL}}"><span class="dot closed"></span>{{.ClosedCount}} Closed</a>
     </nav>
     <div class="menus">
       <details class="menu">
@@ -24,6 +28,14 @@
           {{range .LabelMenu}}
           <a href="{{.URL}}"{{if .On}} aria-current="true"{{end}}><span class="check">{{if .On}}✓{{end}}</span><span class="dot" style="{{labelStyle .Label}}"></span>{{.Name}}</a>
           {{else}}<span class="menu-empty">No labels yet</span>{{end}}
+        </div>
+      </details>
+      <details class="menu">
+        <summary>Service</summary>
+        <div class="menu-pop">
+          {{range .ServiceMenu}}
+          <a href="{{.URL}}"{{if .On}} aria-current="true"{{end}}><span class="check">{{if .On}}✓{{end}}</span>{{.Name}}</a>
+          {{else}}<span class="menu-empty">No services yet</span>{{end}}
         </div>
       </details>
       <details class="menu">
@@ -39,16 +51,19 @@
   <div class="box-row">
     <span class="dot {{.Status}}" title="{{if eq .Status "open"}}Still broken{{else}}Closed{{end}}"></span>
     <div class="grow">
+      <div class="row-site"><a href="{{siteURL .Site}}">{{siteName .Site}}</a></div>
       <div class="row-title">
         <a href="/issues/{{.ID}}">{{.Title}}</a>
         {{range publicLabels .Labels}}{{template "label" .}}{{end}}
       </div>
       <div class="row-meta">
-        #{{.ID}} · <a href="{{siteURL .Site}}">{{siteName .Site}}</a> · seen {{day .SeenAt}} ·
+        #{{.ID}} · seen {{day .SeenAt}} ·
         {{with .AuthorName}}<a href="{{authorURL .}}">@{{.}}</a>{{else}}anonymous{{end}}
+        {{with .Service}}<span class="svc-inline">· <a href="{{serviceURL .}}">{{.}}</a></span>{{end}}
       </div>
     </div>
-    {{if .CommentCount}}<a class="row-comments" href="/issues/{{.ID}}#comments" aria-label="{{.CommentCount}} comments">{{template "icon-comment"}} {{.CommentCount}}</a>{{end}}
+    <div class="row-service">{{with .Service}}<a href="{{serviceURL .}}">{{.}}</a>{{end}}</div>
+    <div class="row-comments">{{if .CommentCount}}<a href="/issues/{{.ID}}#comments" aria-label="{{.CommentCount}} comments">{{template "icon-comment"}} {{.CommentCount}}</a>{{end}}</div>
   </div>
   {{else}}
   <div class="box-empty">No issues match{{if .Filtered}} this search. <a href="/issues">Clear search and filters</a>{{end}}.</div>

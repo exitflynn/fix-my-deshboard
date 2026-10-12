@@ -13,6 +13,7 @@ type Issue struct {
 	AuthorName   *string // nil = anonymous
 	Title        string
 	Site         string // website link or app name
+	Service      string // e.g. IRCTC; may be empty
 	SiteSaid     string
 	Body         string
 	SeenAt       time.Time
@@ -42,12 +43,12 @@ type Comment struct {
 
 const issueFrom = ` FROM issues i LEFT JOIN users u ON u.id = i.author_id `
 
-const issueCols = `i.id, i.author_id, u.username, i.title, i.site, i.site_said, i.body, i.seen_at,
+const issueCols = `i.id, i.author_id, u.username, i.title, i.site, i.service, i.site_said, i.body, i.seen_at,
 	i.labels, i.screenshots, i.status, i.likely_bot, i.created_at, i.edited_at`
 
 func scanIssue(row pgx.Row, extra ...any) (Issue, error) {
 	var i Issue
-	dest := append([]any{&i.ID, &i.AuthorID, &i.AuthorName, &i.Title, &i.Site, &i.SiteSaid, &i.Body, &i.SeenAt,
+	dest := append([]any{&i.ID, &i.AuthorID, &i.AuthorName, &i.Title, &i.Site, &i.Service, &i.SiteSaid, &i.Body, &i.SeenAt,
 		&i.Labels, &i.Screenshots, &i.Status, &i.LikelyBot, &i.CreatedAt, &i.EditedAt}, extra...)
 	return i, row.Scan(dest...)
 }
@@ -73,10 +74,10 @@ func (a *app) issue(ctx context.Context, id int64) (Issue, error) {
 func (a *app) insertIssue(ctx context.Context, i Issue) (int64, error) {
 	var id int64
 	err := a.db.QueryRow(ctx, `
-		INSERT INTO issues (author_id, title, site, site_said, body, seen_at, labels, screenshots, likely_bot)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO issues (author_id, title, site, service, site_said, body, seen_at, labels, screenshots, likely_bot)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id`,
-		i.AuthorID, i.Title, i.Site, i.SiteSaid, i.Body, i.SeenAt, i.Labels, i.Screenshots, i.LikelyBot).Scan(&id)
+		i.AuthorID, i.Title, i.Site, i.Service, i.SiteSaid, i.Body, i.SeenAt, i.Labels, i.Screenshots, i.LikelyBot).Scan(&id)
 	return id, err
 }
 

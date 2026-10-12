@@ -63,8 +63,20 @@ func (a *app) renderAdminIssue(w http.ResponseWriter, r *http.Request, issue Iss
 		a.serverError(w, r, err)
 		return
 	}
+	services, err := a.usedServices(r.Context())
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	for _, s := range serviceHosts {
+		if !slices.Contains(services, s) {
+			services = append(services, s)
+		}
+	}
+	slices.Sort(services)
 	a.render(w, r, status, "admin_issue", data{
-		"Title": fmt.Sprintf("Admin: #%d", issue.ID), "Issue": issue, "Comments": comments,
+		"Services": services,
+		"Title":    fmt.Sprintf("Admin: #%d", issue.ID), "Issue": issue, "Comments": comments,
 		"ShotBase": "/admin/uploads/", "KnownLabels": strings.Join(knownLabels, ", "), "Error": errMsg,
 	})
 }
@@ -98,8 +110,8 @@ func (a *app) adminIssueAction(w http.ResponseWriter, r *http.Request) {
 			a.renderAdminIssue(w, r, issue, http.StatusUnprocessableEntity, "Title can't be empty.")
 			return
 		}
-		_, err = a.db.Exec(ctx, `UPDATE issues SET title = $2, labels = $3 WHERE id = $1`,
-			issue.ID, title, parseLabels(r.FormValue("labels")))
+		_, err = a.db.Exec(ctx, `UPDATE issues SET title = $2, labels = $3, service = $4 WHERE id = $1`,
+			issue.ID, title, parseLabels(r.FormValue("labels")), strings.TrimSpace(r.FormValue("service")))
 	case "accept":
 		_, err = a.db.Exec(ctx, `
 			UPDATE issues SET labels = array_append(array_remove(array_remove(labels, 'triage'), 'accepted'), 'accepted')

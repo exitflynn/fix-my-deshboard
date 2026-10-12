@@ -17,8 +17,7 @@ import (
 
 // Labels admins commonly use, with colours and public display names. Others work too
 // (grey, shown as written).
-var knownLabels = []string{"triage", "accepted", "outage", "misleading-ui", "stale-data", "broken-table",
-	"irctc", "ntes", "passport-seva"}
+var knownLabels = []string{"triage", "accepted", "outage", "misleading-ui", "stale-data", "broken-table"}
 
 var labelColors = map[string]string{
 	"triage":        "#d4a017",
@@ -27,9 +26,6 @@ var labelColors = map[string]string{
 	"misleading-ui": "#e0a800",
 	"stale-data":    "#6aa6d8",
 	"broken-table":  "#e07b5f",
-	"irctc":         "#1d76db",
-	"ntes":          "#5b8c5a",
-	"passport-seva": "#5319e7",
 }
 
 var labelNames = map[string]string{
@@ -38,9 +34,6 @@ var labelNames = map[string]string{
 	"misleading-ui": "Misleading UI",
 	"stale-data":    "Stale data",
 	"broken-table":  "Broken table",
-	"irctc":         "IRCTC",
-	"ntes":          "NTES",
-	"passport-seva": "Passport Seva",
 }
 
 func labelName(l string) string {
@@ -107,6 +100,7 @@ var funcs = template.FuncMap{
 	"hasPrefix":    strings.HasPrefix,
 	"isAuthor":     isAuthor,
 	"labelURL":     labelURL,
+	"serviceURL":   serviceURL,
 	"siteURL":      siteURL,
 	"authorURL":    authorURL,
 	"labelName":    labelName,
@@ -148,6 +142,9 @@ func (a *app) render(w http.ResponseWriter, r *http.Request, status int, page st
 	d["User"] = currentUser(r)
 	if r != nil {
 		d["Path"] = r.URL.RequestURI()
+		if c, err := r.Cookie("theme"); err == nil && (c.Value == "light" || c.Value == "dark") {
+			d["Theme"] = c.Value
+		}
 	}
 	var buf bytes.Buffer
 	if err := a.pages[page].ExecuteTemplate(&buf, "layout", d); err != nil {

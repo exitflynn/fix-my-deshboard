@@ -16,7 +16,7 @@ import (
 )
 
 func (a *app) home(w http.ResponseWriter, r *http.Request) {
-	latest, _, err := a.searchIssues(r.Context(), parseFilter(defaultQuery), 1)
+	latest, _, err := a.searchIssues(r.Context(), filter{}, 1)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -31,11 +31,8 @@ type menuItem struct {
 
 func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	query := defaultQuery
-	if q.Has("q") {
-		query = q.Get("q")
-	}
-	f := parseFilter(query)
+	f := parseFilter(q.Get("q"))
+	f.Closed = q.Get("state") == "closed"
 	page, _ := strconv.Atoi(q.Get("page"))
 	page = max(page, 1)
 
@@ -55,8 +52,16 @@ func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
+	services, err := a.usedServices(ctx)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
 
-	var labelMenu, sortMenu []menuItem
+	var labelMenu, serviceMenu, sortMenu []menuItem
+	for _, s := range services {
+		serviceMenu = append(serviceMenu, menuItem{Name: s, On: strings.EqualFold(f.Service, s), URL: f.withService(s).URL(1)})
+	}
 	for _, l := range labels {
 		labelMenu = append(labelMenu, menuItem{Name: labelName(l), Label: l, On: slices.Contains(f.Labels, l), URL: f.toggleLabel(l).URL(1)})
 	}
@@ -65,10 +70,10 @@ func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 	}
 	d := data{
 		"Title": "Issues", "Issues": issues, "Filter": f, "Q": f.String(),
-		"Filtered":  f.String() != defaultQuery,
+		"Filtered":  f.String() != "",
 		"OpenCount": open, "ClosedCount": closed,
-		"OpenURL": f.withState("open").URL(1), "ClosedURL": f.withState("closed").URL(1),
-		"LabelMenu": labelMenu, "SortMenu": sortMenu,
+		"OpenURL": f.withClosed(false).URL(1), "ClosedURL": f.withClosed(true).URL(1),
+		"LabelMenu": labelMenu, "ServiceMenu": serviceMenu, "SortMenu": sortMenu,
 	}
 	if page > 1 {
 		d["PrevURL"] = f.URL(page - 1)
@@ -141,7 +146,7 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 
 	id, err := a.insertIssue(r.Context(), Issue{
 		AuthorID: userID(r),
-		Title:    f.Title, Site: f.Site, SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
+		Title:    f.Title, Site: f.Site, Service: guessService(f.Site), SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
 		Labels: []string{"triage"}, Screenshots: shots,
 		LikelyBot: r.FormValue("homepage") != "",
 	})
@@ -422,4 +427,16 @@ func siteName(s string) string {
 		return string(r[:40]) + "…"
 	}
 	return s
+}
+
+// setTheme remembers an explicit light or dark choice in a cookie, so pages render in it
+// without a flash. Without the cookie, the system setting is used.
+func (a *app) setTheme(w http.ResponseWriter, r *http.Request) {
+	if t := r.FormValue("theme"); t == "light" || t == "dark" {
+		http.SetCookie(w, &http.Cookie{
+			Name: "theme", Value: t, Path: "/", MaxAge: 365 * 24 * 3600,
+			Secure: a.secureCookies, SameSite: http.SameSiteLaxMode,
+		})
+	}
+	http.Redirect(w, r, safeNext(r.FormValue("back")), http.StatusSeeOther)
 }

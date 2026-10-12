@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS issues (
     author_id   bigint REFERENCES users (id), -- NULL = anonymous
     title       text NOT NULL,
     site        text NOT NULL, -- website link or app name, as the reporter wrote it
+    service     text NOT NULL DEFAULT '', -- e.g. IRCTC; guessed from the site, set by admins
     site_said   text NOT NULL DEFAULT '',
     body        text NOT NULL DEFAULT '',
     seen_at     timestamptz NOT NULL,
@@ -41,3 +42,6 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 CREATE INDEX IF NOT EXISTS comments_issue_id ON comments (issue_id);
+
+-- Columns added after the first deploy. Keep these idempotent.
+ALTER TABLE issues ADD COLUMN IF NOT EXISTS service text NOT NULL DEFAULT '';

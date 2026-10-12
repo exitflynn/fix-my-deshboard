@@ -12,18 +12,19 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// filter is a parsed issues search, GitHub style:
-// is:open|closed  label:x (repeatable)  author:name|anonymous  site:text  sort:oldest|comments|seen  words…
+// filter is an issues search. The query box takes GitHub-style qualifiers:
+// label:x (repeatable)  service:x  author:name|anonymous  site:text  sort:oldest|comments|seen  words…
+// Open/closed isn't part of the query: lists show still-broken issues unless the Closed tab
+// (?state=closed) is picked.
 type filter struct {
-	State  string // "open", "closed", or "" for both
-	Labels []string
-	Author string
-	Site   string
-	Sort   string // "" (newest), "oldest", "comments", "seen" (broken longest)
-	Words  []string
+	Closed  bool
+	Labels  []string
+	Service string
+	Author  string
+	Site    string
+	Sort    string // "" (newest), "oldest", "comments", "seen" (broken longest)
+	Words   []string
 }
-
-const defaultQuery = "is:open"
 
 var sorts = []struct{ Key, Name string }{
 	{"", "Newest"},
@@ -38,11 +39,11 @@ func parseFilter(q string) filter {
 		key, val, ok := strings.Cut(tok, ":")
 		if ok && val != "" {
 			switch strings.ToLower(key) {
-			case "is":
-				if v := strings.ToLower(val); v == "open" || v == "closed" {
-					f.State = v
-					continue
-				}
+			case "is": // open/closed is chosen with the tabs, not the query
+				continue
+			case "service":
+				f.Service = val
+				continue
 			case "label":
 				if l := strings.ToLower(val); !slices.Contains(f.Labels, l) {
 					f.Labels = append(f.Labels, l)
@@ -101,11 +102,11 @@ func quoteIfSpaced(s string) string {
 // String is the canonical query, shown in the search box.
 func (f filter) String() string {
 	var parts []string
-	if f.State != "" {
-		parts = append(parts, "is:"+f.State)
-	}
 	for _, l := range f.Labels {
 		parts = append(parts, "label:"+l)
+	}
+	if f.Service != "" {
+		parts = append(parts, "service:"+quoteIfSpaced(f.Service))
 	}
 	if f.Author != "" {
 		parts = append(parts, "author:"+f.Author)
@@ -124,8 +125,11 @@ func (f filter) String() string {
 
 func (f filter) URL(page int) string {
 	v := url.Values{}
-	if q := f.String(); q != defaultQuery {
+	if q := f.String(); q != "" {
 		v.Set("q", q)
+	}
+	if f.Closed {
+		v.Set("state", "closed")
 	}
 	if page > 1 {
 		v.Set("page", strconv.Itoa(page))
@@ -136,8 +140,17 @@ func (f filter) URL(page int) string {
 	return "/issues?" + v.Encode()
 }
 
-func (f filter) withState(s string) filter { f.State = s; return f }
-func (f filter) withSort(s string) filter  { f.Sort = s; return f }
+func (f filter) withClosed(c bool) filter { f.Closed = c; return f }
+func (f filter) withSort(s string) filter { f.Sort = s; return f }
+
+// withService picks a service, or clears it if it's already the one picked.
+func (f filter) withService(s string) filter {
+	if strings.EqualFold(f.Service, s) {
+		s = ""
+	}
+	f.Service = s
+	return f
+}
 
 func (f filter) toggleLabel(l string) filter {
 	if slices.Contains(f.Labels, l) {
@@ -149,9 +162,10 @@ func (f filter) toggleLabel(l string) filter {
 }
 
 // Links used around the site to jump into a filtered list.
-func labelURL(l string) string  { return filter{State: "open", Labels: []string{l}}.URL(1) }
-func siteURL(s string) string   { return filter{State: "open", Site: siteName(s)}.URL(1) }
-func authorURL(a string) string { return filter{Author: a}.URL(1) }
+func labelURL(l string) string   { return filter{Labels: []string{l}}.URL(1) }
+func serviceURL(s string) string { return filter{Service: s}.URL(1) }
+func siteURL(s string) string    { return filter{Site: siteName(s)}.URL(1) }
+func authorURL(a string) string  { return filter{Author: a}.URL(1) }
 
 // like turns user text into an ILIKE pattern matching it anywhere, with wildcards escaped.
 func like(s string) string {
@@ -166,8 +180,11 @@ func (f filter) where(withState bool) (string, []any) {
 		return fmt.Sprintf("$%d", len(args))
 	}
 	conds := []string{"i.status <> 'removed'"}
-	if withState && f.State != "" {
-		conds = append(conds, "i.status = "+arg(f.State))
+	if withState {
+		conds = append(conds, map[bool]string{false: "i.status = 'open'", true: "i.status = 'closed'"}[f.Closed])
+	}
+	if f.Service != "" {
+		conds = append(conds, "lower(i.service) = lower("+arg(f.Service)+")")
 	}
 	for _, l := range f.Labels {
 		conds = append(conds, arg(l)+" = ANY (i.labels)")
@@ -229,7 +246,7 @@ func (a *app) searchIssues(ctx context.Context, f filter, page int) ([]Issue, bo
 	return issues, false, nil
 }
 
-// countByState counts matching issues per state, ignoring the filter's own is: qualifier.
+// countByState counts matching issues per state (still broken and closed).
 func (a *app) countByState(ctx context.Context, f filter) (open, closed int, err error) {
 	where, args := f.where(false)
 	err = a.db.QueryRow(ctx, `
@@ -248,4 +265,46 @@ func (a *app) usedLabels(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
+// usedServices lists services on public issues, for the filter menu and the admin form.
+func (a *app) usedServices(ctx context.Context) ([]string, error) {
+	rows, err := a.db.Query(ctx, `
+		SELECT DISTINCT service FROM issues
+		WHERE status <> 'removed' AND service <> ''
+		ORDER BY service`)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
+// serviceHosts maps well-known domains to a service, so most issues arrive pre-filled.
+// Admins set or correct the service for everything else.
+var serviceHosts = map[string]string{
+	"irctc.co.in":               "IRCTC",
+	"enquiry.indianrail.gov.in": "NTES",
+	"passportindia.gov.in":      "Passport Seva",
+	"incometax.gov.in":          "Income Tax",
+	"uidai.gov.in":              "Aadhaar",
+}
+
+func guessService(site string) string {
+	host := strings.ToLower(siteName(site))
+	for h, s := range serviceHosts {
+		if host == h || strings.HasSuffix(host, "."+h) {
+			return s
+		}
+	}
+	if looksLikeURL(site) {
+		return ""
+	}
+	// App names like "IRCTC Rail Connect app".
+	lower := strings.ToLower(site)
+	for _, s := range []string{"IRCTC", "NTES"} {
+		if strings.Contains(lower, strings.ToLower(s)) {
+			return s
+		}
+	}
+	return ""
 }

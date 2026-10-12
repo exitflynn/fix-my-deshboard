@@ -18,6 +18,12 @@
     <input class="input" id="title" name="title" value="{{.Issue.Title}}" required maxlength="200">
   </div>
   <div class="field">
+    <label for="service">Service</label>
+    <input class="input" id="service" name="service" value="{{.Issue.Service}}" list="services" placeholder="e.g. IRCTC">
+    <datalist id="services">{{range .Services}}<option value="{{.}}">{{end}}</datalist>
+    <p class="note">Shown in the list's Service column and filter. Leave empty if unsure.</p>
+  </div>
+  <div class="field">
     <label for="labels">Labels</label>
     <input class="input" id="labels" name="labels" value="{{join .Issue.Labels ", "}}">
     <p class="note">Comma-separated. Known: {{.KnownLabels}}</p>

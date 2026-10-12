@@ -1,5 +1,5 @@
 {{define "layout"}}<!doctype html>
-<html lang="en">
+<html lang="en"{{with .Theme}} data-theme="{{.}}"{{end}}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,15 +18,9 @@
   <a href="/" class="wordmark">babu-log</a>
   <nav class="site-nav" aria-label="Main">
     <a href="/issues"{{if and .Path (hasPrefix .Path "/issues") (not (hasPrefix .Path "/issues/new"))}} class="active"{{end}}>Issues</a>
-    {{with .User}}
-    {{if .IsAdmin}}<a href="/admin"{{if hasPrefix $.Path "/admin"}} class="active"{{end}}>Admin</a>{{end}}
-    <span class="me">@{{.Username}}</span>
-    <form method="post" action="/logout"><button type="submit">Log out</button></form>
-    {{else}}
-    <a href="/login?next={{$.Path}}">Log in</a>
-    {{end}}
+    {{if and .User .User.IsAdmin}}<a href="/admin"{{if hasPrefix .Path "/admin"}} class="active"{{end}}>Admin</a>{{end}}
   </nav>
-  <div class="header-end"><a class="btn btn-primary btn-sm" href="/issues/new">Report a problem</a></div>
+  <div class="header-end">{{template "account" .}}</div>
 </header>
 <hr class="rule">
 <main class="page">{{template "content" .}}</main>

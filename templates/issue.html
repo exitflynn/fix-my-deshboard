@@ -4,6 +4,7 @@
   <div class="meta">
     {{template "state" .Issue.Status}}
     <span>{{len .Comments}} comment{{if ne (len .Comments) 1}}s{{end}}</span>
+    {{with .Issue.Service}}<a class="pill svc-pill" href="{{serviceURL .}}">{{.}}</a>{{end}}
     {{range publicLabels .Issue.Labels}}{{template "label" .}}{{end}}
     <a class="btn btn-sm share" href="{{.WhatsApp}}" target="_blank" rel="noopener">Share on WhatsApp</a>
   </div>
