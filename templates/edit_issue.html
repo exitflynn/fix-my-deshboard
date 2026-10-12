@@ -1,0 +1,19 @@
+{{define "content"}}
+<div class="narrow">
+  <h1 class="h2 mb-1">Edit issue #{{.Issue.ID}}</h1>
+  <p class="color-fg-muted mb-4">You can change the title and details. The page address, time seen, what the site said and screenshots are the record and can't be changed. Post a comment to correct them.</p>
+  {{with .Errors}}<div class="flash flash-error mb-3">{{range .}}<div>{{.}}</div>{{end}}</div>{{end}}
+  <form method="post" action="/issues/{{.Issue.ID}}/edit">
+    <div class="form-group mt-0">
+      <div class="form-group-header"><label for="title">Title</label></div>
+      <div class="form-group-body"><input class="form-control width-full" id="title" name="title" value="{{.EditTitle}}" required maxlength="200"></div>
+    </div>
+    <div class="form-group">
+      <div class="form-group-header"><label for="body">Details</label></div>
+      <div class="form-group-body"><textarea class="form-control width-full" id="body" name="body" rows="10" maxlength="20000">{{.EditBody}}</textarea></div>
+    </div>
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn ml-2" href="/issues/{{.Issue.ID}}">Cancel</a>
+  </form>
+</div>
+{{end}}

@@ -12,7 +12,8 @@
 <div class="d-md-flex">
   <div class="flex-auto min-width-0">
     {{template "issueBody" .}}
-    {{range .Comments}}{{template "comment" .}}{{end}}
+    {{$back := printf "/issues/%d" .Issue.ID}}
+    {{range .Comments}}{{template "comment" (dict "C" . "User" $.User "Back" $back)}}{{end}}
 
     <div class="Box mt-4" id="comment-form">
       <div class="Box-header py-2 f6"><strong>Add a comment</strong></div>
@@ -21,7 +22,8 @@
         {{template "honeypot"}}
         <textarea name="body" class="form-control width-full" rows="5" maxlength="10000" required
                   placeholder="Still broken? Seen it fixed? Add details. Markdown supported.">{{with .CommentBody}}{{.}}{{end}}</textarea>
-        <div class="d-flex flex-justify-end mt-2">
+        <div class="d-flex flex-justify-between flex-items-center mt-2">
+          <span class="f6 color-fg-muted">{{template "postingAs" .}}</span>
           <button class="btn btn-primary" type="submit">Comment</button>
         </div>
       </form>

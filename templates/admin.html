@@ -26,7 +26,7 @@
   {{range .Comments}}
   <div class="Box-row">
     <div class="f6 color-fg-muted mb-2">
-      On <a href="/admin/issues/{{.IssueID}}">#{{.IssueID}} {{.IssueTitle}}</a> · {{date .CreatedAt}}
+      {{template "author" .AuthorName}} on <a href="/admin/issues/{{.IssueID}}">#{{.IssueID}} {{.IssueTitle}}</a> · {{date .CreatedAt}}
       {{if eq .Status "removed"}}<span class="Label Label--attention ml-1">removed</span>{{end}}
       {{if .LikelyBot}}<span class="Label Label--danger ml-1">likely bot</span>{{end}}
     </div>

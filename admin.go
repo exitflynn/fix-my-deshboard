@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,33 +13,18 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (a *app) admin(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		u, p, ok := r.BasicAuth()
-		if !ok ||
-			subtle.ConstantTimeCompare([]byte(u), []byte(a.adminUser)) != 1 ||
-			subtle.ConstantTimeCompare([]byte(p), []byte(a.adminPass)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Basic realm="babu-log admin", charset="UTF-8"`)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		w.Header().Set("Cache-Control", "no-store")
-		h(w, r)
-	}
-}
-
 func (a *app) adminHome(w http.ResponseWriter, r *http.Request) {
 	issues, err := a.triageIssues(r.Context())
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
 	comments, err := a.recentComments(r.Context(), 50)
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
-	a.render(w, http.StatusOK, "admin", data{"Title": "Admin", "Issues": issues, "Comments": comments})
+	a.render(w, r, http.StatusOK, "admin", data{"Title": "Admin", "Issues": issues, "Comments": comments})
 }
 
 func (a *app) adminFind(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +43,7 @@ func (a *app) loadIssueByID(w http.ResponseWriter, r *http.Request) (Issue, bool
 		return Issue{}, false
 	}
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return Issue{}, false
 	}
 	return issue, true
@@ -76,10 +60,10 @@ func (a *app) adminIssue(w http.ResponseWriter, r *http.Request) {
 func (a *app) renderAdminIssue(w http.ResponseWriter, r *http.Request, issue Issue, status int, errMsg string) {
 	comments, err := a.comments(r.Context(), issue.ID, true)
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
-	a.render(w, status, "admin_issue", data{
+	a.render(w, r, status, "admin_issue", data{
 		"Title": fmt.Sprintf("Admin: #%d", issue.ID), "Issue": issue, "Comments": comments,
 		"ShotBase": "/admin/uploads/", "KnownLabels": strings.Join(knownLabels(), ", "), "Error": errMsg,
 	})
@@ -130,8 +114,8 @@ func (a *app) adminIssueAction(w http.ResponseWriter, r *http.Request) {
 		}
 		err = pgx.BeginFunc(ctx, a.db, func(tx pgx.Tx) error {
 			if body != "" {
-				if _, err := tx.Exec(ctx, `INSERT INTO comments (issue_id, body, by_admin) VALUES ($1, $2, true)`,
-					issue.ID, body); err != nil {
+				if _, err := tx.Exec(ctx, `INSERT INTO comments (issue_id, author_id, body) VALUES ($1, $2, $3)`,
+					issue.ID, currentUser(r).ID, body); err != nil {
 					return err
 				}
 			}
@@ -143,14 +127,24 @@ func (a *app) adminIssueAction(w http.ResponseWriter, r *http.Request) {
 			return err
 		})
 	default:
-		a.renderError(w, http.StatusBadRequest, "Unknown action.")
+		a.renderError(w, r, http.StatusBadRequest, "Unknown action.")
 		return
 	}
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/admin/issues/%d", issue.ID), http.StatusSeeOther)
+	http.Redirect(w, r, adminBack(r, fmt.Sprintf("/admin/issues/%d", issue.ID)), http.StatusSeeOther)
+}
+
+// adminBack is where to return after an admin action: the page the button was on
+// (admin pages or a public issue page), or fallback.
+func adminBack(r *http.Request, fallback string) string {
+	back := r.FormValue("back")
+	if strings.HasPrefix(back, "/admin") || strings.HasPrefix(back, "/issues") {
+		return safeNext(back)
+	}
+	return fallback
 }
 
 func (a *app) adminRemoveScreenshot(w http.ResponseWriter, r *http.Request) {
@@ -166,7 +160,7 @@ func (a *app) adminRemoveScreenshot(w http.ResponseWriter, r *http.Request) {
 	_, err := a.db.Exec(r.Context(),
 		`UPDATE issues SET screenshots = array_remove(screenshots, $2) WHERE id = $1`, issue.ID, name)
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
 	removeScreenshots(a.uploadDir, []string{name})
@@ -176,7 +170,7 @@ func (a *app) adminRemoveScreenshot(w http.ResponseWriter, r *http.Request) {
 func (a *app) adminCommentAction(w http.ResponseWriter, r *http.Request) {
 	status := map[string]string{"remove": "removed", "restore": "visible"}[r.FormValue("action")]
 	if status == "" {
-		a.renderError(w, http.StatusBadRequest, "Unknown action.")
+		a.renderError(w, r, http.StatusBadRequest, "Unknown action.")
 		return
 	}
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -185,14 +179,10 @@ func (a *app) adminCommentAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err = a.db.Exec(r.Context(), `UPDATE comments SET status = $2 WHERE id = $1`, id, status); err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
-	back := r.FormValue("back")
-	if !strings.HasPrefix(back, "/admin") {
-		back = "/admin"
-	}
-	http.Redirect(w, r, back, http.StatusSeeOther)
+	http.Redirect(w, r, adminBack(r, "/admin"), http.StatusSeeOther)
 }
 
 func (a *app) adminServeUpload(w http.ResponseWriter, r *http.Request) {

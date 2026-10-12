@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -108,16 +109,29 @@ func issuesURL(state, label string, page int) string {
 	return "/issues?" + q.Encode()
 }
 
+// moderators are the ADMIN_USERS usernames; their posts get a "Moderator" badge.
+var moderators []string
+
 var funcs = template.FuncMap{
 	"md":         renderMarkdown,
 	"labelStyle": labelStyle,
 	"issuesURL":  issuesURL,
 	"join":       strings.Join,
-	"date":       func(t time.Time) string { return t.In(ist).Format("2 Jan 2006, 15:04 IST") },
-	"day":        func(t time.Time) string { return t.In(ist).Format("2 Jan 2006") },
+	"isAuthor":   isAuthor,
+	"dict": func(kv ...any) map[string]any {
+		m := map[string]any{}
+		for i := 0; i+1 < len(kv); i += 2 {
+			m[kv[i].(string)] = kv[i+1]
+		}
+		return m
+	},
+	"isModerator": func(name *string) bool { return name != nil && slices.Contains(moderators, *name) },
+	"date":        func(t time.Time) string { return t.In(ist).Format("2 Jan 2006, 15:04 IST") },
+	"day":         func(t time.Time) string { return t.In(ist).Format("2 Jan 2006") },
 }
 
-var pageNames = []string{"home", "list", "new", "issue", "error", "admin", "admin_issue"}
+var pageNames = []string{"home", "list", "new", "issue", "edit_issue", "edit_comment", "login", "welcome",
+	"error", "admin", "admin_issue"}
 
 func parsePages() (map[string]*template.Template, error) {
 	pages := map[string]*template.Template{}
@@ -134,7 +148,12 @@ func parsePages() (map[string]*template.Template, error) {
 
 type data map[string]any
 
-func (a *app) render(w http.ResponseWriter, status int, page string, d data) {
+// render executes a page. r may be nil; when set, the logged-in user is passed as .User.
+func (a *app) render(w http.ResponseWriter, r *http.Request, status int, page string, d data) {
+	d["User"] = currentUser(r)
+	if r != nil {
+		d["Path"] = r.URL.RequestURI()
+	}
 	var buf bytes.Buffer
 	if err := a.pages[page].ExecuteTemplate(&buf, "layout", d); err != nil {
 		log.Printf("render %s: %v", page, err)
@@ -146,15 +165,15 @@ func (a *app) render(w http.ResponseWriter, status int, page string, d data) {
 	buf.WriteTo(w)
 }
 
-func (a *app) renderError(w http.ResponseWriter, status int, msg string) {
-	a.render(w, status, "error", data{"Title": http.StatusText(status), "Message": msg})
+func (a *app) renderError(w http.ResponseWriter, r *http.Request, status int, msg string) {
+	a.render(w, r, status, "error", data{"Title": http.StatusText(status), "Message": msg})
 }
 
-func (a *app) serverError(w http.ResponseWriter, err error) {
+func (a *app) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	log.Print(err)
-	a.renderError(w, http.StatusInternalServerError, "Something went wrong on our side. Please try again.")
+	a.renderError(w, r, http.StatusInternalServerError, "Something went wrong on our side. Please try again.")
 }
 
 func (a *app) notFound(w http.ResponseWriter, r *http.Request) {
-	a.renderError(w, http.StatusNotFound, "That page doesn't exist.")
+	a.renderError(w, r, http.StatusNotFound, "That page doesn't exist.")
 }

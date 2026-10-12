@@ -1,5 +1,19 @@
+CREATE TABLE IF NOT EXISTS users (
+    id         bigserial PRIMARY KEY,
+    google_sub text NOT NULL UNIQUE, -- Google's opaque account ID; no name or email is stored
+    username   text UNIQUE,          -- NULL until chosen on first login
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash bytea PRIMARY KEY, -- sha256 of the cookie value
+    user_id    bigint NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    expires_at timestamptz NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS issues (
     id          bigserial PRIMARY KEY, -- also the public issue number
+    author_id   bigint REFERENCES users (id), -- NULL = anonymous
     title       text NOT NULL,
     url         text NOT NULL,
     site_said   text NOT NULL DEFAULT '',
@@ -10,18 +24,20 @@ CREATE TABLE IF NOT EXISTS issues (
     status      text NOT NULL DEFAULT 'open'
                 CHECK (status IN ('open', 'closed', 'removed')),
     likely_bot  boolean NOT NULL DEFAULT false,
-    created_at  timestamptz NOT NULL DEFAULT now()
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    edited_at   timestamptz
 );
 
 CREATE TABLE IF NOT EXISTS comments (
     id         bigserial PRIMARY KEY,
     issue_id   bigint NOT NULL REFERENCES issues (id) ON DELETE CASCADE,
+    author_id  bigint REFERENCES users (id), -- NULL = anonymous
     body       text NOT NULL,
     status     text NOT NULL DEFAULT 'visible'
                CHECK (status IN ('visible', 'removed')),
-    by_admin   boolean NOT NULL DEFAULT false,
     likely_bot boolean NOT NULL DEFAULT false,
-    created_at timestamptz NOT NULL DEFAULT now()
+    created_at timestamptz NOT NULL DEFAULT now(),
+    edited_at  timestamptz
 );
 
 CREATE INDEX IF NOT EXISTS comments_issue_id ON comments (issue_id);

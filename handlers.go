@@ -16,7 +16,7 @@ import (
 )
 
 func (a *app) home(w http.ResponseWriter, r *http.Request) {
-	a.render(w, http.StatusOK, "home", data{"Home": true})
+	a.render(w, r, http.StatusOK, "home", data{"Home": true})
 }
 
 func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
@@ -31,12 +31,12 @@ func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 
 	issues, hasNext, err := a.queryIssues(r.Context(), state, label, page)
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
 	open, closed, err := a.countIssues(r.Context(), label)
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
 	d := data{
@@ -49,7 +49,7 @@ func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 	if hasNext {
 		d["NextURL"] = issuesURL(state, label, page+1)
 	}
-	a.render(w, http.StatusOK, "list", d)
+	a.render(w, r, http.StatusOK, "list", d)
 }
 
 type issueForm struct {
@@ -57,24 +57,24 @@ type issueForm struct {
 }
 
 func (a *app) newIssue(w http.ResponseWriter, r *http.Request) {
-	a.renderNewIssue(w, http.StatusOK, issueForm{SeenAt: time.Now().In(ist).Format("2006-01-02T15:04")}, nil)
+	a.renderNewIssue(w, r, http.StatusOK, issueForm{SeenAt: time.Now().In(ist).Format("2006-01-02T15:04")}, nil)
 }
 
-func (a *app) renderNewIssue(w http.ResponseWriter, status int, f issueForm, errs []string) {
-	a.render(w, status, "new", data{"Title": "File an Issue", "Form": f, "Errors": errs, "Websites": websites})
+func (a *app) renderNewIssue(w http.ResponseWriter, r *http.Request, status int, f issueForm, errs []string) {
+	a.render(w, r, status, "new", data{"Title": "File an Issue", "Form": f, "Errors": errs, "Websites": websites})
 }
 
 func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
-	ip := a.clientIP(r)
-	if a.issueLimit.full(ip) {
-		a.renderError(w, http.StatusTooManyRequests,
-			"Too many issues from your network in the last hour. Please try again later.")
+	actor := a.actorKey(r)
+	if a.issueLimit.full(actor) {
+		a.renderError(w, r, http.StatusTooManyRequests,
+			"Too many issues from you in the last hour. Please try again later.")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxScreenshots*maxScreenshotBytes+1<<20)
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
-		a.renderError(w, http.StatusRequestEntityTooLarge,
+		a.renderError(w, r, http.StatusRequestEntityTooLarge,
 			"That upload was too large. Screenshots can be up to 5 MB each, 3 at most.")
 		return
 	}
@@ -91,7 +91,7 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 	files := r.MultipartForm.File["screenshots"]
 	seenAt, errs := validateIssue(f, len(files))
 	if len(errs) > 0 {
-		a.renderNewIssue(w, http.StatusUnprocessableEntity, f, errs)
+		a.renderNewIssue(w, r, http.StatusUnprocessableEntity, f, errs)
 		return
 	}
 
@@ -101,9 +101,9 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			removeScreenshots(a.uploadDir, shots)
 			if errors.Is(err, errBadImage) {
-				a.renderNewIssue(w, http.StatusUnprocessableEntity, f, []string{err.Error()})
+				a.renderNewIssue(w, r, http.StatusUnprocessableEntity, f, []string{err.Error()})
 			} else {
-				a.serverError(w, err)
+				a.serverError(w, r, err)
 			}
 			return
 		}
@@ -111,24 +111,36 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := a.insertIssue(r.Context(), Issue{
-		Title: f.Title, URL: f.URL, SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
+		AuthorID: userID(r),
+		Title:    f.Title, URL: f.URL, SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
 		Labels: []string{f.Website, "triage"}, Screenshots: shots,
 		LikelyBot: r.FormValue("homepage") != "",
 	})
 	if err != nil {
 		removeScreenshots(a.uploadDir, shots)
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
-	a.issueLimit.add(ip)
+	a.issueLimit.add(actor)
 	http.Redirect(w, r, fmt.Sprintf("/issues/%d", id), http.StatusSeeOther)
+}
+
+// userID is the logged-in user's id for author_id, or nil for anonymous posts.
+func userID(r *http.Request) *int64 {
+	if u := currentUser(r); u != nil {
+		return &u.ID
+	}
+	return nil
+}
+
+// isAuthor reports whether the logged-in user wrote something with this author_id.
+func isAuthor(u *User, authorID *int64) bool {
+	return u != nil && authorID != nil && *authorID == u.ID
 }
 
 func validateIssue(f issueForm, nFiles int) (time.Time, []string) {
 	var errs []string
-	if f.Title == "" || utf8.RuneCountInString(f.Title) > 200 {
-		errs = append(errs, "Add a title (up to 200 characters).")
-	}
+	errs = append(errs, validateTitleBody(f.Title, f.Body)...)
 	if !slices.ContainsFunc(websites, func(w struct{ Label, Name string }) bool { return w.Label == f.Website }) {
 		errs = append(errs, "Pick which website this is about.")
 	}
@@ -139,8 +151,8 @@ func validateIssue(f issueForm, nFiles int) (time.Time, []string) {
 	if err != nil || seenAt.After(time.Now().Add(10*time.Minute)) {
 		errs = append(errs, "Add when you saw it (not in the future).")
 	}
-	if utf8.RuneCountInString(f.SiteSaid) > 5000 || utf8.RuneCountInString(f.Body) > 20000 {
-		errs = append(errs, "That's too long. Keep 'What the site said' under 5,000 characters and details under 20,000.")
+	if utf8.RuneCountInString(f.SiteSaid) > 5000 {
+		errs = append(errs, "Keep 'What the site said' under 5,000 characters.")
 	}
 	if nFiles > maxScreenshots {
 		errs = append(errs, fmt.Sprintf("Attach at most %d screenshots.", maxScreenshots))
@@ -149,6 +161,17 @@ func validateIssue(f issueForm, nFiles int) (time.Time, []string) {
 		errs = append(errs, "Add what the site said, a screenshot, or both.")
 	}
 	return seenAt, errs
+}
+
+func validateTitleBody(title, body string) []string {
+	var errs []string
+	if title == "" || utf8.RuneCountInString(title) > 200 {
+		errs = append(errs, "Add a title (up to 200 characters).")
+	}
+	if utf8.RuneCountInString(body) > 20000 {
+		errs = append(errs, "Keep the details under 20,000 characters.")
+	}
+	return errs
 }
 
 func (a *app) showIssue(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +194,7 @@ func (a *app) loadPublicIssue(w http.ResponseWriter, r *http.Request) (Issue, bo
 		return Issue{}, false
 	}
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return Issue{}, false
 	}
 	return issue, true
@@ -180,7 +203,7 @@ func (a *app) loadPublicIssue(w http.ResponseWriter, r *http.Request) (Issue, bo
 func (a *app) renderIssue(w http.ResponseWriter, r *http.Request, issue Issue, status int, d data) {
 	comments, err := a.comments(r.Context(), issue.ID, false)
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
 	d["Title"] = fmt.Sprintf("%s · Issue #%d", issue.Title, issue.ID)
@@ -198,7 +221,40 @@ func (a *app) renderIssue(w http.ResponseWriter, r *http.Request, issue Issue, s
 	if a.baseURL != "" && len(issue.Screenshots) > 0 {
 		d["Image"] = strings.TrimRight(a.baseURL, "/") + "/uploads/" + issue.Screenshots[0]
 	}
-	a.render(w, status, "issue", d)
+	a.render(w, r, status, "issue", d)
+}
+
+// editIssue lets an issue's author change the title and details. The evidence
+// (URL, time seen, what the site said, screenshots) is fixed once posted.
+func (a *app) editIssue(w http.ResponseWriter, r *http.Request) {
+	issue, ok := a.loadPublicIssue(w, r)
+	if !ok {
+		return
+	}
+	if !isAuthor(currentUser(r), issue.AuthorID) {
+		a.notFound(w, r)
+		return
+	}
+	title, body := issue.Title, issue.Body
+	if r.Method == http.MethodPost {
+		title, body = strings.TrimSpace(r.FormValue("title")), strings.TrimSpace(r.FormValue("body"))
+		errs := validateTitleBody(title, body)
+		if len(errs) == 0 {
+			_, err := a.db.Exec(r.Context(),
+				`UPDATE issues SET title = $2, body = $3, edited_at = now() WHERE id = $1`, issue.ID, title, body)
+			if err != nil {
+				a.serverError(w, r, err)
+				return
+			}
+			http.Redirect(w, r, fmt.Sprintf("/issues/%d", issue.ID), http.StatusSeeOther)
+			return
+		}
+		a.render(w, r, http.StatusUnprocessableEntity, "edit_issue",
+			data{"Title": "Edit issue", "Issue": issue, "EditTitle": title, "EditBody": body, "Errors": errs})
+		return
+	}
+	a.render(w, r, http.StatusOK, "edit_issue",
+		data{"Title": "Edit issue", "Issue": issue, "EditTitle": title, "EditBody": body})
 }
 
 func (a *app) createComment(w http.ResponseWriter, r *http.Request) {
@@ -206,10 +262,10 @@ func (a *app) createComment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	ip := a.clientIP(r)
-	if a.commentLimit.full(ip) {
-		a.renderError(w, http.StatusTooManyRequests,
-			"Too many comments from your network in the last hour. Please try again later.")
+	actor := a.actorKey(r)
+	if a.commentLimit.full(actor) {
+		a.renderError(w, r, http.StatusTooManyRequests,
+			"Too many comments from you in the last hour. Please try again later.")
 		return
 	}
 	body := strings.TrimSpace(r.FormValue("body"))
@@ -220,14 +276,70 @@ func (a *app) createComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, err := a.insertComment(r.Context(), Comment{
-		IssueID: issue.ID, Body: body, LikelyBot: r.FormValue("homepage") != "",
+		IssueID: issue.ID, AuthorID: userID(r), Body: body, LikelyBot: r.FormValue("homepage") != "",
 	})
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
-	a.commentLimit.add(ip)
+	a.commentLimit.add(actor)
 	http.Redirect(w, r, fmt.Sprintf("/issues/%d#comment-%d", issue.ID, id), http.StatusSeeOther)
+}
+
+// loadOwnComment returns a visible comment written by the logged-in user, or responds 404.
+func (a *app) loadOwnComment(w http.ResponseWriter, r *http.Request) (Comment, bool) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		a.notFound(w, r)
+		return Comment{}, false
+	}
+	c, err := a.comment(r.Context(), id)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (c.Status != "visible" || !isAuthor(currentUser(r), c.AuthorID))) {
+		a.notFound(w, r)
+		return Comment{}, false
+	}
+	if err != nil {
+		a.serverError(w, r, err)
+		return Comment{}, false
+	}
+	return c, true
+}
+
+func (a *app) editComment(w http.ResponseWriter, r *http.Request) {
+	c, ok := a.loadOwnComment(w, r)
+	if !ok {
+		return
+	}
+	if r.Method == http.MethodPost {
+		body := strings.TrimSpace(r.FormValue("body"))
+		if body == "" || utf8.RuneCountInString(body) > 10000 {
+			c.Body = body
+			a.render(w, r, http.StatusUnprocessableEntity, "edit_comment",
+				data{"Title": "Edit comment", "Comment": c, "Error": "Write a comment (up to 10,000 characters)."})
+			return
+		}
+		_, err := a.db.Exec(r.Context(), `UPDATE comments SET body = $2, edited_at = now() WHERE id = $1`, c.ID, body)
+		if err != nil {
+			a.serverError(w, r, err)
+			return
+		}
+		http.Redirect(w, r, fmt.Sprintf("/issues/%d#comment-%d", c.IssueID, c.ID), http.StatusSeeOther)
+		return
+	}
+	a.render(w, r, http.StatusOK, "edit_comment", data{"Title": "Edit comment", "Comment": c})
+}
+
+// deleteComment hides the author's own comment. It stays in the database, like an admin removal.
+func (a *app) deleteComment(w http.ResponseWriter, r *http.Request) {
+	c, ok := a.loadOwnComment(w, r)
+	if !ok {
+		return
+	}
+	if _, err := a.db.Exec(r.Context(), `UPDATE comments SET status = 'removed' WHERE id = $1`, c.ID); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/issues/%d", c.IssueID), http.StatusSeeOther)
 }
 
 // serveUpload serves a screenshot unless its issue has been removed.
@@ -242,7 +354,7 @@ func (a *app) serveUpload(w http.ResponseWriter, r *http.Request) {
 		SELECT EXISTS (SELECT 1 FROM issues WHERE $1 = ANY (screenshots) AND status <> 'removed')`,
 		name).Scan(&public)
 	if err != nil {
-		a.serverError(w, err)
+		a.serverError(w, r, err)
 		return
 	}
 	if !public {

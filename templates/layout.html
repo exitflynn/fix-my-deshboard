@@ -16,6 +16,13 @@
 <header class="Header px-3 px-md-5">
   <div class="Header-item"><a href="/" class="Header-link wordmark">babu-log</a></div>
   <div class="Header-item Header-item--full"><a href="/issues" class="Header-link">Issues</a></div>
+  {{with .User}}
+  <div class="Header-item d-none d-md-flex"><span class="color-fg-on-emphasis">@{{.Username}}</span></div>
+  {{if .IsAdmin}}<div class="Header-item"><a href="/admin" class="Header-link">Admin</a></div>{{end}}
+  <div class="Header-item"><form method="post" action="/logout"><button class="btn-link Header-link" type="submit">Log out</button></form></div>
+  {{else}}
+  <div class="Header-item"><a href="/login?next={{$.Path}}" class="Header-link">Log in</a></div>
+  {{end}}
   <div class="Header-item mr-0"><a href="/issues/new" class="btn btn-sm btn-primary">File an Issue</a></div>
 </header>
 <main class="container-lg px-3 py-4">{{template "content" .}}</main>

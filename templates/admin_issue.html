@@ -50,17 +50,8 @@
 </div>
 {{end}}
 
-{{range .Comments}}
-{{template "comment" .}}
-<form method="post" action="/admin/comments/{{.ID}}" class="mb-3 mt-n2 text-right">
-  <input type="hidden" name="back" value="/admin/issues/{{$id}}">
-  {{if eq .Status "removed"}}
-  <button class="btn btn-sm" name="action" value="restore">Restore comment</button>
-  {{else}}
-  <button class="btn btn-sm btn-danger" name="action" value="remove">Remove comment</button>
-  {{end}}
-</form>
-{{end}}
+{{$back := printf "/admin/issues/%d" $id}}
+{{range .Comments}}{{template "comment" (dict "C" . "User" $.User "Back" $back)}}{{end}}
 
 {{if not .Issue.Removed}}
 <form method="post" action="/admin/issues/{{$id}}" class="Box mt-4">

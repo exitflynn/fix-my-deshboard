@@ -1,0 +1,20 @@
+{{define "content"}}
+<div class="narrow">
+  <h1 class="h2 mb-3">Edit comment</h1>
+  {{with .Error}}<div class="flash flash-error mb-3">{{.}}</div>{{end}}
+  <form method="post" action="/comments/{{.Comment.ID}}/edit">
+    <textarea class="form-control width-full" name="body" rows="8" maxlength="10000" required aria-label="Comment">{{.Comment.Body}}</textarea>
+    <div class="mt-2">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn ml-2" href="/issues/{{.Comment.IssueID}}#comment-{{.Comment.ID}}">Cancel</a>
+    </div>
+  </form>
+  <div class="border-top mt-5 pt-3">
+    <h2 class="h4 mb-1">Delete this comment</h2>
+    <p class="color-fg-muted f6 mb-2">It will disappear from the issue. This can't be undone by you.</p>
+    <form method="post" action="/comments/{{.Comment.ID}}/delete">
+      <button class="btn btn-danger" type="submit">Delete comment</button>
+    </form>
+  </div>
+</div>
+{{end}}

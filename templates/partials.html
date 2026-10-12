@@ -10,10 +10,26 @@
 
 {{define "honeypot"}}<div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="homepage" tabindex="-1" autocomplete="off"></label></div>{{end}}
 
-{{/* The original report. Expects root data with .Issue and .ShotBase. */}}
+{{define "author"}}{{with .}}<strong>@{{.}}</strong>{{else}}<strong>Anonymous</strong>{{end}}{{end}}
+
+{{define "postingAs"}}{{with .User}}Posting as <strong>@{{.Username}}</strong>{{else}}Posting anonymously. <a href="/login?next={{$.Path}}">Log in</a> to get credit and edit later.{{end}}{{end}}
+
+{{/* The original report. Expects root data with .Issue, .ShotBase and .User. */}}
 {{define "issueBody"}}{{$base := .ShotBase}}{{with .Issue}}
 <div class="Box mb-4">
-  <div class="Box-header py-2 f6"><strong>Anonymous</strong> <span class="color-fg-muted">reported on {{date .CreatedAt}}</span></div>
+  <div class="Box-header py-2 f6 d-flex flex-items-center">
+    <div class="flex-auto">
+      {{template "author" .AuthorName}}{{if isModerator .AuthorName}} <span class="Label ml-1">Moderator</span>{{end}}
+      <span class="color-fg-muted">reported on {{date .CreatedAt}}{{with .EditedAt}} · edited {{date .}}{{end}}</span>
+    </div>
+    {{if isAuthor $.User .AuthorID}}<a class="Link--muted ml-2" href="/issues/{{.ID}}/edit">Edit</a>{{end}}
+    {{if and $.User $.User.IsAdmin}}
+    <a class="Link--muted ml-2" href="/admin/issues/{{.ID}}">Admin</a>
+    {{if not .Removed}}<form method="post" action="/admin/issues/{{.ID}}" class="ml-2">
+      <input type="hidden" name="back" value="/issues"><button class="btn-link color-fg-danger" name="action" value="remove">Remove</button>
+    </form>{{end}}
+    {{end}}
+  </div>
   <div class="Box-body">
     <dl class="evidence">
       <dt>Page</dt><dd><a href="{{.URL}}" rel="nofollow noopener noreferrer" target="_blank">{{.URL}}</a></dd>
@@ -26,15 +42,25 @@
 </div>
 {{end}}{{end}}
 
-{{define "comment"}}
-<div class="Box mb-3" id="comment-{{.ID}}">
-  <div class="Box-header py-2 f6{{if .ByAdmin}} moderator{{end}}">
-    <strong>{{if .ByAdmin}}babu-log{{else}}Anonymous{{end}}</strong>
-    {{if .ByAdmin}}<span class="Label ml-1">Moderator</span>{{end}}
-    <span class="color-fg-muted">commented on {{date .CreatedAt}}</span>
-    {{if ne .Status "visible"}}<span class="Label Label--attention ml-1">{{.Status}}</span>{{end}}
-    {{if .LikelyBot}}<span class="Label Label--danger ml-1">likely bot</span>{{end}}
+{{/* Expects (dict "C" comment "User" viewer "Back" url-to-return-to-after-admin-actions). */}}
+{{define "comment"}}{{$c := .C}}
+<div class="Box mb-3" id="comment-{{$c.ID}}">
+  <div class="Box-header py-2 f6 d-flex flex-items-center{{if isModerator $c.AuthorName}} moderator{{end}}">
+    <div class="flex-auto">
+      {{template "author" $c.AuthorName}}{{if isModerator $c.AuthorName}} <span class="Label ml-1">Moderator</span>{{end}}
+      <span class="color-fg-muted">commented on {{date $c.CreatedAt}}{{with $c.EditedAt}} · edited {{date .}}{{end}}</span>
+      {{if ne $c.Status "visible"}}<span class="Label Label--attention ml-1">{{$c.Status}}</span>{{end}}
+      {{if $c.LikelyBot}}<span class="Label Label--danger ml-1">likely bot</span>{{end}}
+    </div>
+    {{if and (isAuthor .User $c.AuthorID) (eq $c.Status "visible")}}<a class="Link--muted ml-2" href="/comments/{{$c.ID}}/edit">Edit</a>{{end}}
+    {{if and .User .User.IsAdmin}}
+    <form method="post" action="/admin/comments/{{$c.ID}}" class="ml-2">
+      <input type="hidden" name="back" value="{{.Back}}">
+      {{if eq $c.Status "removed"}}<button class="btn-link" name="action" value="restore">Restore</button>
+      {{else}}<button class="btn-link color-fg-danger" name="action" value="remove">Remove</button>{{end}}
+    </form>
+    {{end}}
   </div>
-  <div class="Box-body markdown-body">{{md .Body}}</div>
+  <div class="Box-body markdown-body">{{md $c.Body}}</div>
 </div>
 {{end}}
