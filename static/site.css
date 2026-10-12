@@ -1,0 +1,66 @@
+.wordmark {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.Header .wordmark { font-size: 18px; }
+
+.home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  text-align: center;
+}
+.home-wordmark { font-size: clamp(48px, 14vw, 104px); line-height: 1; margin-bottom: 16px; }
+.home-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+
+.narrow { max-width: 720px; }
+
+.issue-label {
+  display: inline-block;
+  padding: 0 7px;
+  margin: 2px 2px 2px 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  border-radius: 2em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.issue-label:hover { text-decoration: none; }
+
+.state-tab { color: var(--fgColor-muted); }
+.state-tab:hover { text-decoration: none; color: var(--fgColor-default); }
+.state-tab.selected { color: var(--fgColor-default); font-weight: 600; }
+
+.State--closed { background-color: var(--bgColor-done-emphasis); box-shadow: none; }
+
+.evidence { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0; }
+.evidence dt { color: var(--fgColor-muted); font-weight: 600; }
+.evidence dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+.site-said {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px 16px;
+  font-size: 13px;
+  background: var(--bgColor-muted);
+  border: 1px solid var(--borderColor-default);
+  border-radius: 6px;
+}
+.form-group textarea.form-control.short { height: auto; min-height: 0; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+.shots { display: flex; flex-wrap: wrap; gap: 8px; }
+.shots a { max-width: 100%; }
+.shots img { max-width: 100%; max-height: 320px; border: 1px solid var(--borderColor-default); border-radius: 6px; }
+
+.moderator { background-color: var(--bgColor-accent-muted); }
+
+.sidebar { flex: 0 0 220px; margin-left: 24px; }
+@media (max-width: 767px) { .sidebar { margin: 24px 0 0; } }
+
+.hp { position: absolute !important; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

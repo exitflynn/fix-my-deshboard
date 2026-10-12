@@ -1,0 +1,40 @@
+{{define "icon-open"}}<svg class="octicon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path></svg>{{end}}
+
+{{define "icon-closed"}}<svg class="octicon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M11.28 6.78a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.78 7.22a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l3.5-3.5Z"></path><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-1.5 0a6.5 6.5 0 1 0-13 0 6.5 6.5 0 0 0 13 0Z"></path></svg>{{end}}
+
+{{define "icon-comment"}}<svg class="octicon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h4.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>{{end}}
+
+{{define "state"}}{{if eq . "open"}}<span class="State State--open">{{template "icon-open"}} Open</span>{{else if eq . "closed"}}<span class="State State--closed">{{template "icon-closed"}} Closed</span>{{else}}<span class="State">{{.}}</span>{{end}}{{end}}
+
+{{define "label"}}<a class="issue-label" style="{{labelStyle .}}" href="{{issuesURL "open" . 1}}">{{.}}</a>{{end}}
+
+{{define "honeypot"}}<div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="homepage" tabindex="-1" autocomplete="off"></label></div>{{end}}
+
+{{/* The original report. Expects root data with .Issue and .ShotBase. */}}
+{{define "issueBody"}}{{$base := .ShotBase}}{{with .Issue}}
+<div class="Box mb-4">
+  <div class="Box-header py-2 f6"><strong>Anonymous</strong> <span class="color-fg-muted">reported on {{date .CreatedAt}}</span></div>
+  <div class="Box-body">
+    <dl class="evidence">
+      <dt>Page</dt><dd><a href="{{.URL}}" rel="nofollow noopener noreferrer" target="_blank">{{.URL}}</a></dd>
+      <dt>Seen</dt><dd>{{date .SeenAt}}</dd>
+    </dl>
+    {{with .SiteSaid}}<h3 class="f5 mt-3 mb-1">What the site said</h3><pre class="site-said">{{.}}</pre>{{end}}
+    {{with .Body}}<div class="markdown-body mt-3">{{md .}}</div>{{end}}
+    {{with .Screenshots}}<div class="shots mt-3">{{range .}}<a href="{{$base}}{{.}}" target="_blank"><img src="{{$base}}{{.}}" alt="Screenshot" loading="lazy"></a>{{end}}</div>{{end}}
+  </div>
+</div>
+{{end}}{{end}}
+
+{{define "comment"}}
+<div class="Box mb-3" id="comment-{{.ID}}">
+  <div class="Box-header py-2 f6{{if .ByAdmin}} moderator{{end}}">
+    <strong>{{if .ByAdmin}}babu-log{{else}}Anonymous{{end}}</strong>
+    {{if .ByAdmin}}<span class="Label ml-1">Moderator</span>{{end}}
+    <span class="color-fg-muted">commented on {{date .CreatedAt}}</span>
+    {{if ne .Status "approved"}}<span class="Label Label--attention ml-1">{{.Status}}</span>{{end}}
+    {{if .LikelyBot}}<span class="Label Label--danger ml-1">likely bot</span>{{end}}
+  </div>
+  <div class="Box-body markdown-body">{{md .Body}}</div>
+</div>
+{{end}}

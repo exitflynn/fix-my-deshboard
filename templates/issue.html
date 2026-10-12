@@ -1,0 +1,38 @@
+{{define "content"}}
+{{with .Issue}}
+<div class="border-bottom pb-3 mb-4">
+  <h1 class="h2 text-normal lh-condensed">{{.Title}} <span class="color-fg-muted">#{{.Num}}</span></h1>
+  <div class="d-flex flex-items-center flex-wrap mt-2">
+    {{template "state" .Status}}
+    <span class="ml-2 color-fg-muted">Reported on {{day .CreatedAt}} · {{len $.Comments}} comment{{if ne (len $.Comments) 1}}s{{end}}</span>
+  </div>
+</div>
+{{end}}
+
+<div class="d-md-flex">
+  <div class="flex-auto min-width-0">
+    {{template "issueBody" .}}
+    {{range .Comments}}{{template "comment" .}}{{end}}
+
+    <div class="Box mt-4" id="comment-form">
+      <div class="Box-header py-2 f6"><strong>Add a comment</strong></div>
+      <form method="post" action="/issues/{{.Issue.Num}}/comments" class="Box-body">
+        {{if .Commented}}<div class="flash flash-success mb-3">Thanks. Your comment will appear after review.</div>{{end}}
+        {{with .CommentError}}<div class="flash flash-error mb-3">{{.}}</div>{{end}}
+        {{template "honeypot"}}
+        <textarea name="body" class="form-control width-full" rows="5" maxlength="10000" required
+                  placeholder="Still broken? Seen it fixed? Add details. Markdown supported.">{{with .CommentBody}}{{.}}{{end}}</textarea>
+        <div class="d-flex flex-justify-between flex-items-center mt-2">
+          <span class="f6 color-fg-muted">Comments appear after review.</span>
+          <button class="btn btn-primary" type="submit">Comment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <h2 class="f6 color-fg-muted mb-2">Labels</h2>
+    <div>{{range .Issue.Labels}}{{template "label" .}} {{else}}<span class="color-fg-muted f6">None yet</span>{{end}}</div>
+  </aside>
+</div>
+{{end}}

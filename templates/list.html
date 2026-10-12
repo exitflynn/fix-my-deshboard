@@ -1,0 +1,41 @@
+{{define "content"}}
+<div class="d-flex flex-items-center flex-justify-between mb-3">
+  <div>
+    {{with .Label}}Filtered by <span class="issue-label" style="{{labelStyle .}}">{{.}}</span>
+    · <a href="{{issuesURL $.State "" 1}}">Clear</a>{{end}}
+  </div>
+</div>
+
+<div class="Box">
+  <div class="Box-header d-flex">
+    <a class="state-tab{{if eq .State "open"}} selected{{end}}" href="{{issuesURL "open" .Label 1}}">{{template "icon-open"}} {{.OpenCount}} Open</a>
+    <a class="state-tab ml-3{{if eq .State "closed"}} selected{{end}}" href="{{issuesURL "closed" .Label 1}}">{{template "icon-closed"}} {{.ClosedCount}} Closed</a>
+  </div>
+  {{range .Issues}}
+  <div class="Box-row d-flex">
+    <div class="flex-shrink-0 pr-2 {{if eq .Status "open"}}color-fg-success{{else}}color-fg-done{{end}}">
+      {{if eq .Status "open"}}{{template "icon-open"}}{{else}}{{template "icon-closed"}}{{end}}
+    </div>
+    <div class="flex-auto min-width-0">
+      <a class="Link--primary text-bold f4 mr-1" href="/issues/{{.Num}}">{{.Title}}</a>
+      {{range .Labels}}{{template "label" .}}{{end}}
+      <div class="f6 color-fg-muted mt-1">#{{.Num}} reported on {{day .CreatedAt}}</div>
+    </div>
+    {{if .CommentCount}}<a class="flex-shrink-0 f6 Link--muted ml-3" href="/issues/{{.Num}}">{{template "icon-comment"}} {{.CommentCount}}</a>{{end}}
+  </div>
+  {{else}}
+  <div class="blankslate">
+    <h3 class="blankslate-heading">No {{.State}} issues{{if .Label}} with this label{{end}}.</h3>
+  </div>
+  {{end}}
+</div>
+
+{{if or .PrevURL .NextURL}}
+<nav class="paginate-container" aria-label="Pagination">
+  <div class="pagination">
+    {{with .PrevURL}}<a class="previous_page" href="{{.}}">Previous</a>{{else}}<span class="previous_page" aria-disabled="true">Previous</span>{{end}}
+    {{with .NextURL}}<a class="next_page" href="{{.}}">Next</a>{{else}}<span class="next_page" aria-disabled="true">Next</span>{{end}}
+  </div>
+</nav>
+{{end}}
+{{end}}

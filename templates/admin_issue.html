@@ -1,0 +1,70 @@
+{{define "content"}}
+{{$public := .Issue.Public}}
+<p class="mb-3 f6"><a href="/admin">← Moderation</a>{{if $public}} · <a href="/issues/{{.Issue.Num}}">Public page</a>{{end}}</p>
+
+<div class="d-flex flex-items-center mb-3">
+  {{template "state" .Issue.Status}}
+  {{if $public}}<span class="ml-2 color-fg-muted">#{{.Issue.Num}}</span>{{end}}
+  {{if .Issue.LikelyBot}}<span class="Label Label--danger ml-2">likely bot</span>{{end}}
+</div>
+
+{{with .Error}}<div class="flash flash-error mb-3">{{.}}</div>{{end}}
+
+<form method="post" action="/admin/issues/{{.Issue.ID}}" class="Box mb-4">
+  <div class="Box-body">
+    <div class="form-group mt-0">
+      <div class="form-group-header"><label for="title">Title</label></div>
+      <div class="form-group-body"><input class="form-control width-full" id="title" name="title" value="{{.Issue.Title}}" required maxlength="200"></div>
+    </div>
+    <div class="form-group">
+      <div class="form-group-header"><label for="labels">Labels</label></div>
+      <div class="form-group-body">
+        <input class="form-control width-full" id="labels" name="labels" value="{{join .Issue.Labels ", "}}">
+        <p class="note">Comma-separated. Known: {{.KnownLabels}}</p>
+      </div>
+    </div>
+    {{if $public}}
+    <button class="btn" name="action" value="save">Save</button>
+    {{else}}
+    <button class="btn btn-primary" name="action" value="approve">Approve and publish</button>
+    {{if eq .Issue.Status "pending"}}<button class="btn btn-danger ml-2" name="action" value="reject">Reject</button>{{end}}
+    {{end}}
+  </div>
+</form>
+
+{{template "issueBody" .}}
+
+{{with .Issue.Screenshots}}
+<div class="Box mb-4">
+  <div class="Box-header py-2 f6"><strong>Screenshots</strong> <span class="color-fg-muted">Remove any that show personal details.</span></div>
+  {{range .}}
+  <div class="Box-row d-flex flex-items-center">
+    <a class="flex-auto" href="/admin/uploads/{{.}}" target="_blank">{{.}}</a>
+    <form method="post" action="/admin/issues/{{$.Issue.ID}}/screenshots/remove">
+      <input type="hidden" name="name" value="{{.}}">
+      <button class="btn btn-sm btn-danger">Remove</button>
+    </form>
+  </div>
+  {{end}}
+</div>
+{{end}}
+
+{{range .Comments}}{{template "comment" .}}{{end}}
+
+{{if $public}}
+<form method="post" action="/admin/issues/{{.Issue.ID}}" class="Box mt-4">
+  <div class="Box-header py-2 f6"><strong>Comment as moderator</strong></div>
+  <div class="Box-body">
+    <textarea name="body" class="form-control width-full" rows="4" placeholder="Markdown supported. Closing needs a comment saying why."></textarea>
+    <div class="d-flex flex-justify-end mt-2">
+      {{if eq .Issue.Status "open"}}
+      <button class="btn mr-2" name="action" value="close">Close with comment</button>
+      {{else}}
+      <button class="btn mr-2" name="action" value="reopen">Reopen</button>
+      {{end}}
+      <button class="btn btn-primary" name="action" value="comment">Comment</button>
+    </div>
+  </div>
+</form>
+{{end}}
+{{end}}

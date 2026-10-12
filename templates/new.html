@@ -1,0 +1,73 @@
+{{define "content"}}
+<div class="narrow">
+  <h1 class="h2 mb-1">File an Issue</h1>
+  <p class="color-fg-muted mb-4">One specific thing that doesn't work, on one page. No login needed. Your issue appears after review.</p>
+
+  {{with .Errors}}<div class="flash flash-error mb-3">{{range .}}<div>{{.}}</div>{{end}}</div>{{end}}
+
+  <form method="post" action="/issues" enctype="multipart/form-data">
+    {{template "honeypot"}}
+    {{with .Form}}
+    <div class="form-group">
+      <div class="form-group-header"><label for="title">Title</label></div>
+      <div class="form-group-body">
+        <input class="form-control width-full" id="title" name="title" value="{{.Title}}" required maxlength="200"
+               placeholder="Cancelled trains list says 'temporarily unavailable'">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-header"><label for="website">Website</label></div>
+      <div class="form-group-body">
+        <select class="form-select" id="website" name="website" required>
+          <option value="">Choose…</option>
+          {{range $.Websites}}<option value="{{.Label}}"{{if eq .Label $.Form.Website}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-header"><label for="url">Page address (URL)</label></div>
+      <div class="form-group-body">
+        <input class="form-control width-full" id="url" name="url" type="url" value="{{.URL}}" required
+               placeholder="https://enquiry.indianrail.gov.in/…">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-header"><label for="seen_at">When did you see it? (IST)</label></div>
+      <div class="form-group-body">
+        <input class="form-control" id="seen_at" name="seen_at" type="datetime-local" value="{{.SeenAt}}" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-header"><label for="site_said">What the site said</label></div>
+      <div class="form-group-body">
+        <textarea class="form-control width-full mono short" id="site_said" name="site_said" rows="3" maxlength="5000"
+                  placeholder="Copy the exact words, including any error codes.">{{.SiteSaid}}</textarea>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-header"><label for="body">Details</label></div>
+      <div class="form-group-body">
+        <textarea class="form-control width-full" id="body" name="body" rows="6" maxlength="20000"
+                  placeholder="What were you trying to do? What happened instead? Markdown supported.">{{.Body}}</textarea>
+      </div>
+    </div>
+    {{end}}
+
+    <div class="form-group">
+      <div class="form-group-header"><label for="screenshots">Screenshots</label></div>
+      <div class="form-group-body">
+        <input id="screenshots" name="screenshots" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+        <p class="note">Up to 3 images, 5 MB each. Please hide names, PNRs, phone and Aadhaar numbers first.</p>
+      </div>
+    </div>
+
+    <p class="f6 color-fg-muted">Add what the site said, a screenshot, or both.</p>
+    <button class="btn btn-primary" type="submit">Submit for review</button>
+  </form>
+</div>
+{{end}}

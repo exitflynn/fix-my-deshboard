@@ -1,0 +1,42 @@
+{{define "content"}}
+<div class="d-flex flex-items-center flex-justify-between mb-4">
+  <h1 class="h2">Moderation</h1>
+  <form action="/admin/find" method="get" class="d-flex">
+    <input class="form-control input-sm" name="number" type="number" min="1" placeholder="Issue #" aria-label="Issue number">
+    <button class="btn btn-sm ml-2" type="submit">Open</button>
+  </form>
+</div>
+
+<h2 class="h4 mb-2">Pending issues ({{len .Issues}})</h2>
+<div class="Box mb-5">
+  {{range .Issues}}
+  <div class="Box-row">
+    <a class="Link--primary text-bold" href="/admin/issues/{{.ID}}">{{.Title}}</a>
+    {{range .Labels}}{{template "label" .}}{{end}}
+    {{if .LikelyBot}}<span class="Label Label--danger ml-1">likely bot</span>{{end}}
+    <div class="f6 color-fg-muted mt-1">Submitted {{date .CreatedAt}} · {{len .Screenshots}} screenshot(s)</div>
+  </div>
+  {{else}}
+  <div class="Box-row color-fg-muted">Nothing pending.</div>
+  {{end}}
+</div>
+
+<h2 class="h4 mb-2">Pending comments ({{len .Comments}})</h2>
+<div class="Box">
+  {{range .Comments}}
+  <div class="Box-row">
+    <div class="f6 color-fg-muted mb-2">
+      On <a href="/issues/{{.IssueNumber}}#comment-{{.ID}}">#{{.IssueNumber}} {{.IssueTitle}}</a> · {{date .CreatedAt}}
+      {{if .LikelyBot}}<span class="Label Label--danger ml-1">likely bot</span>{{end}}
+    </div>
+    <div class="markdown-body">{{md .Body}}</div>
+    <form method="post" action="/admin/comments/{{.ID}}" class="mt-2">
+      <button class="btn btn-sm btn-primary" name="action" value="approve">Approve</button>
+      <button class="btn btn-sm btn-danger ml-1" name="action" value="reject">Reject</button>
+    </form>
+  </div>
+  {{else}}
+  <div class="Box-row color-fg-muted">Nothing pending.</div>
+  {{end}}
+</div>
+{{end}}
