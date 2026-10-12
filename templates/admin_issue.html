@@ -1,16 +1,16 @@
 {{define "content"}}
-{{$public := .Issue.Public}}
-<p class="mb-3 f6"><a href="/admin">← Moderation</a>{{if $public}} · <a href="/issues/{{.Issue.Num}}">Public page</a>{{end}}</p>
+{{$id := .Issue.ID}}
+<p class="mb-3 f6"><a href="/admin">← Admin</a>{{if not .Issue.Removed}} · <a href="/issues/{{$id}}">Public page</a>{{end}}</p>
 
 <div class="d-flex flex-items-center mb-3">
   {{template "state" .Issue.Status}}
-  {{if $public}}<span class="ml-2 color-fg-muted">#{{.Issue.Num}}</span>{{end}}
+  <span class="ml-2 color-fg-muted">#{{$id}}</span>
   {{if .Issue.LikelyBot}}<span class="Label Label--danger ml-2">likely bot</span>{{end}}
 </div>
 
 {{with .Error}}<div class="flash flash-error mb-3">{{.}}</div>{{end}}
 
-<form method="post" action="/admin/issues/{{.Issue.ID}}" class="Box mb-4">
+<form method="post" action="/admin/issues/{{$id}}" class="Box mb-4">
   <div class="Box-body">
     <div class="form-group mt-0">
       <div class="form-group-header"><label for="title">Title</label></div>
@@ -23,11 +23,12 @@
         <p class="note">Comma-separated. Known: {{.KnownLabels}}</p>
       </div>
     </div>
-    {{if $public}}
     <button class="btn" name="action" value="save">Save</button>
+    <button class="btn btn-primary ml-2" name="action" value="accept" formnovalidate>Accept</button>
+    {{if .Issue.Removed}}
+    <button class="btn ml-2" name="action" value="restore" formnovalidate>Restore</button>
     {{else}}
-    <button class="btn btn-primary" name="action" value="approve">Approve and publish</button>
-    {{if eq .Issue.Status "pending"}}<button class="btn btn-danger ml-2" name="action" value="reject">Reject</button>{{end}}
+    <button class="btn btn-danger ml-2" name="action" value="remove" formnovalidate>Remove</button>
     {{end}}
   </div>
 </form>
@@ -40,7 +41,7 @@
   {{range .}}
   <div class="Box-row d-flex flex-items-center">
     <a class="flex-auto" href="/admin/uploads/{{.}}" target="_blank">{{.}}</a>
-    <form method="post" action="/admin/issues/{{$.Issue.ID}}/screenshots/remove">
+    <form method="post" action="/admin/issues/{{$id}}/screenshots/remove">
       <input type="hidden" name="name" value="{{.}}">
       <button class="btn btn-sm btn-danger">Remove</button>
     </form>
@@ -49,18 +50,28 @@
 </div>
 {{end}}
 
-{{range .Comments}}{{template "comment" .}}{{end}}
+{{range .Comments}}
+{{template "comment" .}}
+<form method="post" action="/admin/comments/{{.ID}}" class="mb-3 mt-n2 text-right">
+  <input type="hidden" name="back" value="/admin/issues/{{$id}}">
+  {{if eq .Status "removed"}}
+  <button class="btn btn-sm" name="action" value="restore">Restore comment</button>
+  {{else}}
+  <button class="btn btn-sm btn-danger" name="action" value="remove">Remove comment</button>
+  {{end}}
+</form>
+{{end}}
 
-{{if $public}}
-<form method="post" action="/admin/issues/{{.Issue.ID}}" class="Box mt-4">
+{{if not .Issue.Removed}}
+<form method="post" action="/admin/issues/{{$id}}" class="Box mt-4">
   <div class="Box-header py-2 f6"><strong>Comment as moderator</strong></div>
   <div class="Box-body">
     <textarea name="body" class="form-control width-full" rows="4" placeholder="Markdown supported. Closing needs a comment saying why."></textarea>
     <div class="d-flex flex-justify-end mt-2">
-      {{if eq .Issue.Status "open"}}
-      <button class="btn mr-2" name="action" value="close">Close with comment</button>
-      {{else}}
+      {{if eq .Issue.Status "closed"}}
       <button class="btn mr-2" name="action" value="reopen">Reopen</button>
+      {{else}}
+      <button class="btn mr-2" name="action" value="close">Close with comment</button>
       {{end}}
       <button class="btn btn-primary" name="action" value="comment">Comment</button>
     </div>

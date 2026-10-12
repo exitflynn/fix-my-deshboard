@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="narrow">
   <h1 class="h2 mb-1">File an Issue</h1>
-  <p class="color-fg-muted mb-4">One specific thing that doesn't work, on one page. No login needed. Your issue appears after review.</p>
+  <p class="color-fg-muted mb-4">One specific thing that doesn't work, on one page. No login needed.</p>
 
   {{with .Errors}}<div class="flash flash-error mb-3">{{range .}}<div>{{.}}</div>{{end}}</div>{{end}}
 
@@ -67,7 +67,7 @@
     </div>
 
     <p class="f6 color-fg-muted">Add what the site said, a screenshot, or both.</p>
-    <button class="btn btn-primary" type="submit">Submit for review</button>
+    <button class="btn btn-primary" type="submit">Submit issue</button>
   </form>
 </div>
 {{end}}

@@ -17,11 +17,11 @@
       {{if eq .Status "open"}}{{template "icon-open"}}{{else}}{{template "icon-closed"}}{{end}}
     </div>
     <div class="flex-auto min-width-0">
-      <a class="Link--primary text-bold f4 mr-1" href="/issues/{{.Num}}">{{.Title}}</a>
+      <a class="Link--primary text-bold f4 mr-1" href="/issues/{{.ID}}">{{.Title}}</a>
       {{range .Labels}}{{template "label" .}}{{end}}
-      <div class="f6 color-fg-muted mt-1">#{{.Num}} reported on {{day .CreatedAt}}</div>
+      <div class="f6 color-fg-muted mt-1">#{{.ID}} reported on {{day .CreatedAt}}</div>
     </div>
-    {{if .CommentCount}}<a class="flex-shrink-0 f6 Link--muted ml-3" href="/issues/{{.Num}}">{{template "icon-comment"}} {{.CommentCount}}</a>{{end}}
+    {{if .CommentCount}}<a class="flex-shrink-0 f6 Link--muted ml-3" href="/issues/{{.ID}}">{{template "icon-comment"}} {{.CommentCount}}</a>{{end}}
   </div>
   {{else}}
   <div class="blankslate">

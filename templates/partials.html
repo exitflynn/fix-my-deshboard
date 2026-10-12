@@ -32,7 +32,7 @@
     <strong>{{if .ByAdmin}}babu-log{{else}}Anonymous{{end}}</strong>
     {{if .ByAdmin}}<span class="Label ml-1">Moderator</span>{{end}}
     <span class="color-fg-muted">commented on {{date .CreatedAt}}</span>
-    {{if ne .Status "approved"}}<span class="Label Label--attention ml-1">{{.Status}}</span>{{end}}
+    {{if ne .Status "visible"}}<span class="Label Label--attention ml-1">{{.Status}}</span>{{end}}
     {{if .LikelyBot}}<span class="Label Label--danger ml-1">likely bot</span>{{end}}
   </div>
   <div class="Box-body markdown-body">{{md .Body}}</div>

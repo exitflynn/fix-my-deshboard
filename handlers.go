@@ -110,9 +110,9 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 		shots = append(shots, name)
 	}
 
-	err := a.insertIssue(r.Context(), Issue{
+	id, err := a.insertIssue(r.Context(), Issue{
 		Title: f.Title, URL: f.URL, SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
-		Labels: []string{f.Website}, Screenshots: shots,
+		Labels: []string{f.Website, "triage"}, Screenshots: shots,
 		LikelyBot: r.FormValue("homepage") != "",
 	})
 	if err != nil {
@@ -121,7 +121,7 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.issueLimit.add(ip)
-	a.render(w, http.StatusOK, "thanks", data{"Title": "Thanks"})
+	http.Redirect(w, r, fmt.Sprintf("/issues/%d", id), http.StatusSeeOther)
 }
 
 func validateIssue(f issueForm, nFiles int) (time.Time, []string) {
@@ -156,17 +156,17 @@ func (a *app) showIssue(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	a.renderIssue(w, r, issue, http.StatusOK, data{"Commented": r.URL.Query().Get("commented") == "1"})
+	a.renderIssue(w, r, issue, http.StatusOK, data{})
 }
 
 func (a *app) loadPublicIssue(w http.ResponseWriter, r *http.Request) (Issue, bool) {
-	n, err := strconv.Atoi(r.PathValue("number"))
+	id, err := strconv.ParseInt(r.PathValue("number"), 10, 64)
 	if err != nil {
 		a.notFound(w, r)
 		return Issue{}, false
 	}
-	issue, err := a.publicIssue(r.Context(), n)
-	if errors.Is(err, pgx.ErrNoRows) {
+	issue, err := a.issue(r.Context(), id)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && issue.Removed()) {
 		a.notFound(w, r)
 		return Issue{}, false
 	}
@@ -183,7 +183,7 @@ func (a *app) renderIssue(w http.ResponseWriter, r *http.Request, issue Issue, s
 		a.serverError(w, err)
 		return
 	}
-	d["Title"] = fmt.Sprintf("%s · Issue #%d", issue.Title, issue.Num())
+	d["Title"] = fmt.Sprintf("%s · Issue #%d", issue.Title, issue.ID)
 	d["Issue"] = issue
 	d["Comments"] = comments
 	d["ShotBase"] = "/uploads/"
@@ -219,18 +219,18 @@ func (a *app) createComment(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	err := a.insertComment(r.Context(), Comment{
-		IssueID: issue.ID, Body: body, Status: "pending", LikelyBot: r.FormValue("homepage") != "",
+	id, err := a.insertComment(r.Context(), Comment{
+		IssueID: issue.ID, Body: body, LikelyBot: r.FormValue("homepage") != "",
 	})
 	if err != nil {
 		a.serverError(w, err)
 		return
 	}
 	a.commentLimit.add(ip)
-	http.Redirect(w, r, fmt.Sprintf("/issues/%d?commented=1#comment-form", issue.Num()), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/issues/%d#comment-%d", issue.ID, id), http.StatusSeeOther)
 }
 
-// serveUpload serves a screenshot only once its issue has been approved.
+// serveUpload serves a screenshot unless its issue has been removed.
 func (a *app) serveUpload(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	if !screenshotName.MatchString(name) {
@@ -239,7 +239,7 @@ func (a *app) serveUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	var public bool
 	err := a.db.QueryRow(r.Context(), `
-		SELECT EXISTS (SELECT 1 FROM issues WHERE $1 = ANY (screenshots) AND status IN ('open', 'closed'))`,
+		SELECT EXISTS (SELECT 1 FROM issues WHERE $1 = ANY (screenshots) AND status <> 'removed')`,
 		name).Scan(&public)
 	if err != nil {
 		a.serverError(w, err)

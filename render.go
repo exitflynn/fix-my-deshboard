@@ -30,6 +30,8 @@ var labelColors = map[string]string{
 	"ntes":          "#0e8a16",
 	"passport-seva": "#5319e7",
 	"other":         "#6e7781",
+	"triage":        "#ededed",
+	"accepted":      "#0e8a16",
 	"outage":        "#d73a4a",
 	"misleading-ui": "#fbca04",
 	"stale-data":    "#c5def5",
@@ -41,7 +43,7 @@ func knownLabels() []string {
 	for _, w := range websites {
 		out = append(out, w.Label)
 	}
-	return append(out, "outage", "misleading-ui", "stale-data", "broken-table")
+	return append(out, "triage", "accepted", "outage", "misleading-ui", "stale-data", "broken-table")
 }
 
 func labelStyle(name string) template.CSS {
@@ -115,7 +117,7 @@ var funcs = template.FuncMap{
 	"day":        func(t time.Time) string { return t.In(ist).Format("2 Jan 2006") },
 }
 
-var pageNames = []string{"home", "list", "new", "thanks", "issue", "error", "admin", "admin_issue"}
+var pageNames = []string{"home", "list", "new", "issue", "error", "admin", "admin_issue"}
 
 func parsePages() (map[string]*template.Template, error) {
 	pages := map[string]*template.Template{}

@@ -30,30 +30,21 @@ func (a *app) admin(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func (a *app) adminHome(w http.ResponseWriter, r *http.Request) {
-	issues, err := a.pendingIssues(r.Context())
+	issues, err := a.triageIssues(r.Context())
 	if err != nil {
 		a.serverError(w, err)
 		return
 	}
-	comments, err := a.pendingComments(r.Context())
+	comments, err := a.recentComments(r.Context(), 50)
 	if err != nil {
 		a.serverError(w, err)
 		return
 	}
-	a.render(w, http.StatusOK, "admin", data{"Title": "Moderation", "Issues": issues, "Comments": comments})
+	a.render(w, http.StatusOK, "admin", data{"Title": "Admin", "Issues": issues, "Comments": comments})
 }
 
 func (a *app) adminFind(w http.ResponseWriter, r *http.Request) {
-	var id int64
-	n, err := strconv.Atoi(r.FormValue("number"))
-	if err == nil {
-		err = a.db.QueryRow(r.Context(), `SELECT id FROM issues WHERE number = $1`, n).Scan(&id)
-	}
-	if err != nil {
-		a.renderError(w, http.StatusNotFound, "No issue with that number.")
-		return
-	}
-	http.Redirect(w, r, fmt.Sprintf("/admin/issues/%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/issues/"+strings.TrimPrefix(r.FormValue("number"), "#"), http.StatusSeeOther)
 }
 
 func (a *app) loadIssueByID(w http.ResponseWriter, r *http.Request) (Issue, bool) {
@@ -62,7 +53,7 @@ func (a *app) loadIssueByID(w http.ResponseWriter, r *http.Request) (Issue, bool
 		a.notFound(w, r)
 		return Issue{}, false
 	}
-	issue, err := a.issueByID(r.Context(), id)
+	issue, err := a.issue(r.Context(), id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		a.notFound(w, r)
 		return Issue{}, false
@@ -89,7 +80,7 @@ func (a *app) renderAdminIssue(w http.ResponseWriter, r *http.Request, issue Iss
 		return
 	}
 	a.render(w, status, "admin_issue", data{
-		"Title": "Review: " + issue.Title, "Issue": issue, "Comments": comments,
+		"Title": fmt.Sprintf("Admin: #%d", issue.ID), "Issue": issue, "Comments": comments,
 		"ShotBase": "/admin/uploads/", "KnownLabels": strings.Join(knownLabels(), ", "), "Error": errMsg,
 	})
 }
@@ -113,51 +104,33 @@ func (a *app) adminIssueAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	title := strings.TrimSpace(r.FormValue("title"))
-	labels := parseLabels(r.FormValue("labels"))
 	body := strings.TrimSpace(r.FormValue("body"))
-	back := fmt.Sprintf("/admin/issues/%d", issue.ID)
 
 	var err error
 	switch action := r.FormValue("action"); action {
-	case "approve", "save":
+	case "save":
+		title := strings.TrimSpace(r.FormValue("title"))
 		if title == "" {
 			a.renderAdminIssue(w, r, issue, http.StatusUnprocessableEntity, "Title can't be empty.")
 			return
 		}
-		if action == "save" {
-			_, err = a.db.Exec(ctx, `UPDATE issues SET title = $2, labels = $3 WHERE id = $1`, issue.ID, title, labels)
-			break
-		}
-		// Numbers are handed out at approval so the public sequence has no gaps.
-		err = pgx.BeginFunc(ctx, a.db, func(tx pgx.Tx) error {
-			if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(1)`); err != nil {
-				return err
-			}
-			_, err := tx.Exec(ctx, `
-				UPDATE issues
-				SET status = 'open', title = $2, labels = $3,
-				    number = (SELECT coalesce(max(number), 0) + 1 FROM issues)
-				WHERE id = $1 AND status IN ('pending', 'rejected')`, issue.ID, title, labels)
-			return err
-		})
-		back = "/admin"
-	case "reject":
-		_, err = a.db.Exec(ctx, `UPDATE issues SET status = 'rejected' WHERE id = $1 AND status = 'pending'`, issue.ID)
-		back = "/admin"
+		_, err = a.db.Exec(ctx, `UPDATE issues SET title = $2, labels = $3 WHERE id = $1`,
+			issue.ID, title, parseLabels(r.FormValue("labels")))
+	case "accept":
+		_, err = a.db.Exec(ctx, `
+			UPDATE issues SET labels = array_append(array_remove(array_remove(labels, 'triage'), 'accepted'), 'accepted')
+			WHERE id = $1`, issue.ID)
+	case "remove", "restore":
+		status := map[string]string{"remove": "removed", "restore": "open"}[action]
+		_, err = a.db.Exec(ctx, `UPDATE issues SET status = $2 WHERE id = $1`, issue.ID, status)
 	case "comment", "close", "reopen":
-		if !issue.Public() {
-			a.renderAdminIssue(w, r, issue, http.StatusUnprocessableEntity, "Approve the issue first.")
-			return
-		}
 		if body == "" && action != "reopen" {
 			a.renderAdminIssue(w, r, issue, http.StatusUnprocessableEntity, "Write a comment explaining this.")
 			return
 		}
 		err = pgx.BeginFunc(ctx, a.db, func(tx pgx.Tx) error {
 			if body != "" {
-				if _, err := tx.Exec(ctx, `
-					INSERT INTO comments (issue_id, body, status, by_admin) VALUES ($1, $2, 'approved', true)`,
+				if _, err := tx.Exec(ctx, `INSERT INTO comments (issue_id, body, by_admin) VALUES ($1, $2, true)`,
 					issue.ID, body); err != nil {
 					return err
 				}
@@ -177,7 +150,7 @@ func (a *app) adminIssueAction(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, err)
 		return
 	}
-	http.Redirect(w, r, back, http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/admin/issues/%d", issue.ID), http.StatusSeeOther)
 }
 
 func (a *app) adminRemoveScreenshot(w http.ResponseWriter, r *http.Request) {
@@ -201,7 +174,7 @@ func (a *app) adminRemoveScreenshot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) adminCommentAction(w http.ResponseWriter, r *http.Request) {
-	status := map[string]string{"approve": "approved", "reject": "rejected"}[r.FormValue("action")]
+	status := map[string]string{"remove": "removed", "restore": "visible"}[r.FormValue("action")]
 	if status == "" {
 		a.renderError(w, http.StatusBadRequest, "Unknown action.")
 		return
@@ -211,13 +184,15 @@ func (a *app) adminCommentAction(w http.ResponseWriter, r *http.Request) {
 		a.notFound(w, r)
 		return
 	}
-	_, err = a.db.Exec(r.Context(),
-		`UPDATE comments SET status = $2 WHERE id = $1 AND status = 'pending'`, id, status)
-	if err != nil {
+	if _, err = a.db.Exec(r.Context(), `UPDATE comments SET status = $2 WHERE id = $1`, id, status); err != nil {
 		a.serverError(w, err)
 		return
 	}
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	back := r.FormValue("back")
+	if !strings.HasPrefix(back, "/admin") {
+		back = "/admin"
+	}
+	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
 func (a *app) adminServeUpload(w http.ResponseWriter, r *http.Request) {
