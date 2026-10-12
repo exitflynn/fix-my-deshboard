@@ -11,7 +11,7 @@
 Not in v1: Wayback/archiving, hashing, automated checks, reproductions, search, emails, profiles, edit history, i18n.
 
 ## Stack
-- One Go binary, `html/template`, Primer CSS. Postgres.
+- One Go binary, `html/template`, a small hand-written stylesheet (cream background, Newsreader serif + Instrument Sans, self-hosted fonts). Postgres.
 - Docker Compose (app, postgres, caddy) on one VPS in India.
 - Nightly `pg_dump` + `uploads/` copied to an S3-compatible bucket.
 - Deploy: `git pull && docker compose up -d --build`.

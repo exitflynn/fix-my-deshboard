@@ -1,34 +1,34 @@
 {{define "content"}}
 {{$id := .Issue.ID}}
-<p class="mb-3 f6"><a href="/admin">← Admin</a>{{if not .Issue.Removed}} · <a href="/issues/{{$id}}">Public page</a>{{end}}</p>
+<p class="small muted mb-2"><a href="/admin">← Admin</a>{{if not .Issue.Removed}} · <a href="/issues/{{$id}}">Public page</a>{{end}}</p>
 
-<div class="d-flex flex-items-center mb-3">
-  {{template "state" .Issue.Status}}
-  <span class="ml-2 color-fg-muted">#{{$id}}</span>
-  {{if .Issue.LikelyBot}}<span class="Label Label--danger ml-2">likely bot</span>{{end}}
-</div>
+<header class="issue-head">
+  <h1>{{.Issue.Title}} <span class="num">#{{$id}}</span></h1>
+  <div class="meta">
+    {{template "state" .Issue.Status}}
+    {{if .Issue.LikelyBot}}<span class="tag danger">likely bot</span>{{end}}
+  </div>
+</header>
 
-{{with .Error}}<div class="flash flash-error mb-3">{{.}}</div>{{end}}
+{{with .Error}}<div class="flash flash-error">{{.}}</div>{{end}}
 
-<form method="post" action="/admin/issues/{{$id}}" class="Box mb-4">
-  <div class="Box-body">
-    <div class="form-group mt-0">
-      <div class="form-group-header"><label for="title">Title</label></div>
-      <div class="form-group-body"><input class="form-control width-full" id="title" name="title" value="{{.Issue.Title}}" required maxlength="200"></div>
-    </div>
-    <div class="form-group">
-      <div class="form-group-header"><label for="labels">Labels</label></div>
-      <div class="form-group-body">
-        <input class="form-control width-full" id="labels" name="labels" value="{{join .Issue.Labels ", "}}">
-        <p class="note">Comma-separated. Known: {{.KnownLabels}}</p>
-      </div>
-    </div>
-    <button class="btn" name="action" value="save">Save</button>
-    <button class="btn btn-primary ml-2" name="action" value="accept" formnovalidate>Accept</button>
+<form method="post" action="/admin/issues/{{$id}}" class="panel">
+  <div class="field">
+    <label for="title">Title</label>
+    <input class="input" id="title" name="title" value="{{.Issue.Title}}" required maxlength="200">
+  </div>
+  <div class="field">
+    <label for="labels">Labels</label>
+    <input class="input" id="labels" name="labels" value="{{join .Issue.Labels ", "}}">
+    <p class="note">Comma-separated. Known: {{.KnownLabels}}</p>
+  </div>
+  <div class="flex flex-wrap">
+    <button class="btn btn-sm" name="action" value="save">Save</button>
+    <button class="btn btn-primary btn-sm" name="action" value="accept" formnovalidate>Accept</button>
     {{if .Issue.Removed}}
-    <button class="btn ml-2" name="action" value="restore" formnovalidate>Restore</button>
+    <button class="btn btn-sm" name="action" value="restore" formnovalidate>Restore</button>
     {{else}}
-    <button class="btn btn-danger ml-2" name="action" value="remove" formnovalidate>Remove</button>
+    <button class="btn btn-danger btn-sm" name="action" value="remove" formnovalidate>Remove</button>
     {{end}}
   </div>
 </form>
@@ -36,37 +36,43 @@
 {{template "issueBody" .}}
 
 {{with .Issue.Screenshots}}
-<div class="Box mb-4">
-  <div class="Box-header py-2 f6"><strong>Screenshots</strong> <span class="color-fg-muted">Remove any that show personal details.</span></div>
-  {{range .}}
-  <div class="Box-row d-flex flex-items-center">
-    <a class="flex-auto" href="/admin/uploads/{{.}}" target="_blank">{{.}}</a>
-    <form method="post" action="/admin/issues/{{$id}}/screenshots/remove">
-      <input type="hidden" name="name" value="{{.}}">
-      <button class="btn btn-sm btn-danger">Remove</button>
-    </form>
-  </div>
-  {{end}}
-</div>
+<section class="panel mt-3">
+  <h2>Screenshots</h2>
+  <p class="small muted">Remove any that show personal details.</p>
+  <ul class="list-plain">
+    {{range .}}
+    <li class="flex">
+      <a class="grow small" href="/admin/uploads/{{.}}" target="_blank">{{.}}</a>
+      <form method="post" action="/admin/issues/{{$id}}/screenshots/remove">
+        <input type="hidden" name="name" value="{{.}}">
+        <button class="btn btn-danger btn-sm">Remove</button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+</section>
 {{end}}
 
-{{$back := printf "/admin/issues/%d" $id}}
-{{range .Comments}}{{template "comment" (dict "C" . "User" $.User "Back" $back)}}{{end}}
+<section class="thread">
+  <h2 class="thread-title">Discussion</h2>
+  {{$back := printf "/admin/issues/%d" $id}}
+  {{range .Comments}}{{template "comment" (dict "C" . "User" $.User "Back" $back)}}{{else}}<p class="muted mt-2">No comments.</p>{{end}}
 
-{{if not .Issue.Removed}}
-<form method="post" action="/admin/issues/{{$id}}" class="Box mt-4">
-  <div class="Box-header py-2 f6"><strong>Comment as moderator</strong></div>
-  <div class="Box-body">
-    <textarea name="body" class="form-control width-full" rows="4" placeholder="Markdown supported. Closing needs a comment saying why."></textarea>
-    <div class="d-flex flex-justify-end mt-2">
-      {{if eq .Issue.Status "closed"}}
-      <button class="btn mr-2" name="action" value="reopen">Reopen</button>
-      {{else}}
-      <button class="btn mr-2" name="action" value="close">Close with comment</button>
-      {{end}}
-      <button class="btn btn-primary" name="action" value="comment">Comment</button>
+  {{if not .Issue.Removed}}
+  <form method="post" action="/admin/issues/{{$id}}" class="reply">
+    <textarea name="body" class="textarea" rows="4" aria-label="Moderator comment" placeholder="Comment as moderator. Markdown supported. Closing needs a comment saying why."></textarea>
+    <div class="reply-foot">
+      <span class="small muted">Posting as <strong>@{{.User.Username}}</strong> · Moderator</span>
+      <div class="flex">
+        {{if eq .Issue.Status "closed"}}
+        <button class="btn btn-sm" name="action" value="reopen">Reopen</button>
+        {{else}}
+        <button class="btn btn-sm" name="action" value="close">Close with comment</button>
+        {{end}}
+        <button class="btn btn-primary btn-sm" name="action" value="comment">Comment</button>
+      </div>
     </div>
-  </div>
-</form>
-{{end}}
+  </form>
+  {{end}}
+</section>
 {{end}}

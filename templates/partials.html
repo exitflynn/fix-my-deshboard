@@ -1,66 +1,58 @@
-{{define "icon-open"}}<svg class="octicon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path></svg>{{end}}
+{{define "state"}}<span class="status"><span class="dot {{.}}"></span>{{if eq . "open"}}Open{{else if eq . "closed"}}Closed{{else}}{{.}}{{end}}</span>{{end}}
 
-{{define "icon-closed"}}<svg class="octicon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M11.28 6.78a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.78 7.22a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l3.5-3.5Z"></path><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-1.5 0a6.5 6.5 0 1 0-13 0 6.5 6.5 0 0 0 13 0Z"></path></svg>{{end}}
-
-{{define "icon-comment"}}<svg class="octicon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h4.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>{{end}}
-
-{{define "state"}}{{if eq . "open"}}<span class="State State--open">{{template "icon-open"}} Open</span>{{else if eq . "closed"}}<span class="State State--closed">{{template "icon-closed"}} Closed</span>{{else}}<span class="State">{{.}}</span>{{end}}{{end}}
-
-{{define "label"}}<a class="issue-label" style="{{labelStyle .}}" href="{{issuesURL "open" . 1}}">{{.}}</a>{{end}}
+{{define "label"}}<a class="pill" style="{{labelStyle .}}" href="{{issuesURL "open" . 1}}"><span class="dot"></span>{{.}}</a>{{end}}
 
 {{define "honeypot"}}<div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="homepage" tabindex="-1" autocomplete="off"></label></div>{{end}}
 
-{{define "author"}}{{with .}}<strong>@{{.}}</strong>{{else}}<strong>Anonymous</strong>{{end}}{{end}}
+{{define "author"}}{{with .}}<span class="who">@{{.}}</span>{{else}}<span class="who">Anonymous</span>{{end}}{{end}}
 
 {{define "postingAs"}}{{with .User}}Posting as <strong>@{{.Username}}</strong>{{else}}Posting anonymously. <a href="/login?next={{$.Path}}">Log in</a> to get credit and edit later.{{end}}{{end}}
 
 {{/* The original report. Expects root data with .Issue, .ShotBase and .User. */}}
 {{define "issueBody"}}{{$base := .ShotBase}}{{with .Issue}}
-<div class="Box mb-4">
-  <div class="Box-header py-2 f6 d-flex flex-items-center">
-    <div class="flex-auto">
-      {{template "author" .AuthorName}}{{if isModerator .AuthorName}} <span class="Label ml-1">Moderator</span>{{end}}
-      <span class="color-fg-muted">reported on {{date .CreatedAt}}{{with .EditedAt}} · edited {{date .}}{{end}}</span>
-    </div>
-    {{if isAuthor $.User .AuthorID}}<a class="Link--muted ml-2" href="/issues/{{.ID}}/edit">Edit</a>{{end}}
-    {{if and $.User $.User.IsAdmin}}
-    <a class="Link--muted ml-2" href="/admin/issues/{{.ID}}">Admin</a>
-    {{if not .Removed}}<form method="post" action="/admin/issues/{{.ID}}" class="ml-2">
-      <input type="hidden" name="back" value="/issues"><button class="btn-link color-fg-danger" name="action" value="remove">Remove</button>
-    </form>{{end}}
-    {{end}}
+<section class="record">
+  <div class="record-head">
+    {{template "author" .AuthorName}}{{if isModerator .AuthorName}}<span class="tag">Moderator</span>{{end}}
+    <span>reported {{date .CreatedAt}}{{with .EditedAt}} · edited {{date .}}{{end}}</span>
+    <span class="tools">
+      {{if isAuthor $.User .AuthorID}}<a class="linkbtn" href="/issues/{{.ID}}/edit">Edit</a>{{end}}
+      {{if and $.User $.User.IsAdmin}}
+      <a class="linkbtn" href="/admin/issues/{{.ID}}">Admin</a>
+      {{if not .Removed}}<form method="post" action="/admin/issues/{{.ID}}">
+        <input type="hidden" name="back" value="/issues"><button class="linkbtn danger" name="action" value="remove">Remove</button>
+      </form>{{end}}
+      {{end}}
+    </span>
   </div>
-  <div class="Box-body">
-    <dl class="evidence">
-      <dt>Page</dt><dd><a href="{{.URL}}" rel="nofollow noopener noreferrer" target="_blank">{{.URL}}</a></dd>
-      <dt>Seen</dt><dd>{{date .SeenAt}}</dd>
-    </dl>
-    {{with .SiteSaid}}<h3 class="f5 mt-3 mb-1">What the site said</h3><pre class="site-said">{{.}}</pre>{{end}}
-    {{with .Body}}<div class="markdown-body mt-3">{{md .}}</div>{{end}}
-    {{with .Screenshots}}<div class="shots mt-3">{{range .}}<a href="{{$base}}{{.}}" target="_blank"><img src="{{$base}}{{.}}" alt="Screenshot" loading="lazy"></a>{{end}}</div>{{end}}
-  </div>
-</div>
+  <dl class="facts">
+    <dt>Page</dt><dd><a href="{{.URL}}" rel="nofollow noopener noreferrer" target="_blank">{{.URL}}</a></dd>
+    <dt>Seen</dt><dd>{{date .SeenAt}}</dd>
+  </dl>
+  {{with .SiteSaid}}<div class="said-label">What the site said</div><pre class="said">{{.}}</pre>{{end}}
+  {{with .Body}}<div class="prose">{{md .}}</div>{{end}}
+  {{with .Screenshots}}<div class="shots">{{range .}}<a href="{{$base}}{{.}}" target="_blank"><img src="{{$base}}{{.}}" alt="Screenshot" loading="lazy"></a>{{end}}</div>{{end}}
+</section>
 {{end}}{{end}}
 
 {{/* Expects (dict "C" comment "User" viewer "Back" url-to-return-to-after-admin-actions). */}}
 {{define "comment"}}{{$c := .C}}
-<div class="Box mb-3" id="comment-{{$c.ID}}">
-  <div class="Box-header py-2 f6 d-flex flex-items-center{{if isModerator $c.AuthorName}} moderator{{end}}">
-    <div class="flex-auto">
-      {{template "author" $c.AuthorName}}{{if isModerator $c.AuthorName}} <span class="Label ml-1">Moderator</span>{{end}}
-      <span class="color-fg-muted">commented on {{date $c.CreatedAt}}{{with $c.EditedAt}} · edited {{date .}}{{end}}</span>
-      {{if ne $c.Status "visible"}}<span class="Label Label--attention ml-1">{{$c.Status}}</span>{{end}}
-      {{if $c.LikelyBot}}<span class="Label Label--danger ml-1">likely bot</span>{{end}}
-    </div>
-    {{if and (isAuthor .User $c.AuthorID) (eq $c.Status "visible")}}<a class="Link--muted ml-2" href="/comments/{{$c.ID}}/edit">Edit</a>{{end}}
-    {{if and .User .User.IsAdmin}}
-    <form method="post" action="/admin/comments/{{$c.ID}}" class="ml-2">
-      <input type="hidden" name="back" value="{{.Back}}">
-      {{if eq $c.Status "removed"}}<button class="btn-link" name="action" value="restore">Restore</button>
-      {{else}}<button class="btn-link color-fg-danger" name="action" value="remove">Remove</button>{{end}}
-    </form>
-    {{end}}
+<article class="comment{{if isModerator $c.AuthorName}} mod{{end}}" id="comment-{{$c.ID}}">
+  <div class="comment-head">
+    {{template "author" $c.AuthorName}}{{if isModerator $c.AuthorName}}<span class="tag">Moderator</span>{{end}}
+    <span>{{date $c.CreatedAt}}{{with $c.EditedAt}} · edited{{end}}</span>
+    {{if ne $c.Status "visible"}}<span class="tag warn">{{$c.Status}}</span>{{end}}
+    {{if $c.LikelyBot}}<span class="tag danger">likely bot</span>{{end}}
+    <span class="tools">
+      {{if and (isAuthor .User $c.AuthorID) (eq $c.Status "visible")}}<a class="linkbtn" href="/comments/{{$c.ID}}/edit">Edit</a>{{end}}
+      {{if and .User .User.IsAdmin}}
+      <form method="post" action="/admin/comments/{{$c.ID}}">
+        <input type="hidden" name="back" value="{{.Back}}">
+        {{if eq $c.Status "removed"}}<button class="linkbtn" name="action" value="restore">Restore</button>
+        {{else}}<button class="linkbtn danger" name="action" value="remove">Remove</button>{{end}}
+      </form>
+      {{end}}
+    </span>
   </div>
-  <div class="Box-body markdown-body">{{md $c.Body}}</div>
-</div>
+  <div class="prose">{{md $c.Body}}</div>
+</article>
 {{end}}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -30,13 +29,13 @@ var labelColors = map[string]string{
 	"irctc":         "#1d76db",
 	"ntes":          "#0e8a16",
 	"passport-seva": "#5319e7",
-	"other":         "#6e7781",
-	"triage":        "#ededed",
+	"other":         "#a8a396",
+	"triage":        "#d4a017",
 	"accepted":      "#0e8a16",
 	"outage":        "#d73a4a",
-	"misleading-ui": "#fbca04",
-	"stale-data":    "#c5def5",
-	"broken-table":  "#f9d0c4",
+	"misleading-ui": "#e0a800",
+	"stale-data":    "#6aa6d8",
+	"broken-table":  "#e07b5f",
 }
 
 func knownLabels() []string {
@@ -47,22 +46,13 @@ func knownLabels() []string {
 	return append(out, "triage", "accepted", "outage", "misleading-ui", "stale-data", "broken-table")
 }
 
+// labelStyle sets the colour of the label's dot.
 func labelStyle(name string) template.CSS {
-	bg, ok := labelColors[name]
+	c, ok := labelColors[name]
 	if !ok {
-		bg = "#6e7781"
+		c = "#a8a396"
 	}
-	return template.CSS(fmt.Sprintf("background-color:%s;color:%s", bg, textOn(bg)))
-}
-
-// textOn picks dark or light text for a #rrggbb background.
-func textOn(hex string) string {
-	v, _ := strconv.ParseUint(strings.TrimPrefix(hex, "#"), 16, 32)
-	r, g, b := float64(v>>16&0xff), float64(v>>8&0xff), float64(v&0xff)
-	if (0.299*r+0.587*g+0.114*b)/255 > 0.6 {
-		return "#1f2328"
-	}
-	return "#ffffff"
+	return template.CSS("--c:" + c)
 }
 
 var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM)) // raw HTML is dropped by default
@@ -117,6 +107,7 @@ var funcs = template.FuncMap{
 	"labelStyle": labelStyle,
 	"issuesURL":  issuesURL,
 	"join":       strings.Join,
+	"hasPrefix":  strings.HasPrefix,
 	"isAuthor":   isAuthor,
 	"dict": func(kv ...any) map[string]any {
 		m := map[string]any{}

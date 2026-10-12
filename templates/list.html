@@ -1,41 +1,37 @@
 {{define "content"}}
-<div class="d-flex flex-items-center flex-justify-between mb-3">
-  <div>
-    {{with .Label}}Filtered by <span class="issue-label" style="{{labelStyle .}}">{{.}}</span>
-    · <a href="{{issuesURL $.State "" 1}}">Clear</a>{{end}}
-  </div>
-</div>
+<p class="kicker">The public record</p>
+<h1 class="page-title">Issues</h1>
+{{with .Label}}
+<p class="mt-2 small muted">Labelled <span class="pill" style="{{labelStyle .}}"><span class="dot"></span>{{.}}</span> · <a href="{{issuesURL $.State "" 1}}">show all</a></p>
+{{end}}
 
-<div class="Box">
-  <div class="Box-header d-flex">
-    <a class="state-tab{{if eq .State "open"}} selected{{end}}" href="{{issuesURL "open" .Label 1}}">{{template "icon-open"}} {{.OpenCount}} Open</a>
-    <a class="state-tab ml-3{{if eq .State "closed"}} selected{{end}}" href="{{issuesURL "closed" .Label 1}}">{{template "icon-closed"}} {{.ClosedCount}} Closed</a>
-  </div>
+<nav class="tabs" aria-label="Issue state">
+  <a{{if eq .State "open"}} class="active"{{end}} href="{{issuesURL "open" .Label 1}}">Open · {{.OpenCount}}</a>
+  <a{{if eq .State "closed"}} class="active"{{end}} href="{{issuesURL "closed" .Label 1}}">Closed · {{.ClosedCount}}</a>
+</nav>
+
+<ul class="issue-list">
   {{range .Issues}}
-  <div class="Box-row d-flex">
-    <div class="flex-shrink-0 pr-2 {{if eq .Status "open"}}color-fg-success{{else}}color-fg-done{{end}}">
-      {{if eq .Status "open"}}{{template "icon-open"}}{{else}}{{template "icon-closed"}}{{end}}
+  <li class="issue-item">
+    <span class="dot {{.Status}}" title="{{.Status}}"></span>
+    <div class="grow">
+      <a class="title" href="/issues/{{.ID}}">{{.Title}}</a>
+      <div class="meta">
+        <span>#{{.ID}} · {{day .CreatedAt}}{{with .AuthorName}} · @{{.}}{{end}}</span>
+        {{range .Labels}}{{template "label" .}}{{end}}
+      </div>
     </div>
-    <div class="flex-auto min-width-0">
-      <a class="Link--primary text-bold f4 mr-1" href="/issues/{{.ID}}">{{.Title}}</a>
-      {{range .Labels}}{{template "label" .}}{{end}}
-      <div class="f6 color-fg-muted mt-1">#{{.ID}} reported on {{day .CreatedAt}}</div>
-    </div>
-    {{if .CommentCount}}<a class="flex-shrink-0 f6 Link--muted ml-3" href="/issues/{{.ID}}">{{template "icon-comment"}} {{.CommentCount}}</a>{{end}}
-  </div>
+    {{if .CommentCount}}<a class="comments" href="/issues/{{.ID}}#comments">{{.CommentCount}} {{if eq .CommentCount 1}}comment{{else}}comments{{end}}</a>{{end}}
+  </li>
   {{else}}
-  <div class="blankslate">
-    <h3 class="blankslate-heading">No {{.State}} issues{{if .Label}} with this label{{end}}.</h3>
-  </div>
+  <li class="empty">No {{.State}} issues{{if .Label}} with this label{{end}}.</li>
   {{end}}
-</div>
+</ul>
 
 {{if or .PrevURL .NextURL}}
-<nav class="paginate-container" aria-label="Pagination">
-  <div class="pagination">
-    {{with .PrevURL}}<a class="previous_page" href="{{.}}">Previous</a>{{else}}<span class="previous_page" aria-disabled="true">Previous</span>{{end}}
-    {{with .NextURL}}<a class="next_page" href="{{.}}">Next</a>{{else}}<span class="next_page" aria-disabled="true">Next</span>{{end}}
-  </div>
+<nav class="pagination" aria-label="Pagination">
+  {{with .PrevURL}}<a class="btn btn-sm" href="{{.}}">← Newer</a>{{else}}<span></span>{{end}}
+  {{with .NextURL}}<a class="btn btn-sm" href="{{.}}">Older →</a>{{end}}
 </nav>
 {{end}}
 {{end}}

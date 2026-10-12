@@ -1,31 +1,35 @@
 {{define "layout"}}<!doctype html>
-<html lang="en" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>{{with .Title}}{{.}} · {{end}}babu-log</title>
   <meta property="og:site_name" content="babu-log">
   <meta property="og:title" content="{{with .Title}}{{.}}{{else}}babu-log{{end}}">
   {{with .Description}}<meta name="description" content="{{.}}"><meta property="og:description" content="{{.}}">{{end}}
   {{with .Image}}<meta property="og:image" content="{{.}}"><meta name="twitter:card" content="summary_large_image">{{end}}
-  <link rel="stylesheet" href="/static/primer.css">
+  <link rel="preload" href="/static/fonts/newsreader-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/site.css">
 </head>
 <body>
 {{if not .Home}}
-<header class="Header px-3 px-md-5">
-  <div class="Header-item"><a href="/" class="Header-link wordmark">babu-log</a></div>
-  <div class="Header-item Header-item--full"><a href="/issues" class="Header-link">Issues</a></div>
-  {{with .User}}
-  <div class="Header-item d-none d-md-flex"><span class="color-fg-on-emphasis">@{{.Username}}</span></div>
-  {{if .IsAdmin}}<div class="Header-item"><a href="/admin" class="Header-link">Admin</a></div>{{end}}
-  <div class="Header-item"><form method="post" action="/logout"><button class="btn-link Header-link" type="submit">Log out</button></form></div>
-  {{else}}
-  <div class="Header-item"><a href="/login?next={{$.Path}}" class="Header-link">Log in</a></div>
-  {{end}}
-  <div class="Header-item mr-0"><a href="/issues/new" class="btn btn-sm btn-primary">File an Issue</a></div>
+<header class="site-header">
+  <a href="/" class="wordmark">babu-log</a>
+  <nav class="site-nav" aria-label="Main">
+    <a href="/issues"{{if and .Path (hasPrefix .Path "/issues") (not (hasPrefix .Path "/issues/new"))}} class="active"{{end}}>Issues</a>
+    {{with .User}}
+    {{if .IsAdmin}}<a href="/admin"{{if hasPrefix $.Path "/admin"}} class="active"{{end}}>Admin</a>{{end}}
+    <span class="me">@{{.Username}}</span>
+    <form method="post" action="/logout"><button type="submit">Log out</button></form>
+    {{else}}
+    <a href="/login?next={{$.Path}}">Log in</a>
+    {{end}}
+  </nav>
+  <div class="header-end"><a class="btn btn-primary btn-sm" href="/issues/new">File an Issue</a></div>
 </header>
-<main class="container-lg px-3 py-4">{{template "content" .}}</main>
+<hr class="rule">
+<main class="page">{{template "content" .}}</main>
 {{else}}
 <main>{{template "content" .}}</main>
 {{end}}

@@ -1,11 +1,11 @@
 {{define "content"}}
-<div class="narrow">
-  <h1 class="h2 mb-3">Log in</h1>
-  <div class="flash flash-warn mb-3">Development login: Google sign-in isn't configured, so you can log in as any name.</div>
-  <form method="post" action="/login/dev" class="d-flex">
+<div class="page-narrow">
+  <h1 class="page-title mb-3">Log in</h1>
+  <div class="flash flash-warn">Development login: Google sign-in isn't configured, so you can log in as any name.</div>
+  <form method="post" action="/login/dev" class="flex flex-wrap">
     <input type="hidden" name="next" value="{{.Next}}">
-    <input class="form-control" name="name" placeholder="Any name, e.g. alice" required aria-label="Name">
-    <button class="btn btn-primary ml-2" type="submit">Log in</button>
+    <input class="input auto" name="name" placeholder="Any name, e.g. alice" required aria-label="Name">
+    <button class="btn btn-primary" type="submit">Log in</button>
   </form>
 </div>
 {{end}}
