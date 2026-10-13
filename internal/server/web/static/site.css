@@ -146,8 +146,8 @@ img { max-width: 100%; }
   font-size: 15px;
   font-weight: 500;
   line-height: 1;
-  padding: 12px 22px;
-  border-radius: 999px;
+  padding: 12px 20px;
+  border-radius: 8px;
   border: 1px solid var(--ink);
   background: transparent;
   color: var(--ink);
@@ -330,7 +330,7 @@ input[type="file"]::file-selector-button {
   font-size: 14px;
   padding: 8px 16px;
   margin-right: 12px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid var(--ink);
   background: transparent;
   color: var(--ink);
@@ -343,11 +343,28 @@ input[type="file"]::file-selector-button {
 
 /* Issues list: search + bordered box */
 .search { position: relative; }
+.search + .box, .chips + .box { margin-top: 18px; }
 .search .input { font-family: var(--mono); font-size: 15px; padding: 10px 14px 10px 40px; }
 .search-icon { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); display: inline-flex; padding: 10px; border: 0; background: none; color: var(--muted); cursor: pointer; }
 .search-icon:hover { color: var(--ink); }
-.search-help { font-size: 13px; color: var(--muted); margin: 8px 0 20px; }
-.search-help code { font-family: var(--mono); font-size: 12px; background: var(--sunken); padding: 1px 6px; border-radius: 4px; }
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 0; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  padding: 5px 8px 5px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+.chip:hover { border-color: var(--ink); }
+.chip-kind { color: var(--muted); }
+.chip-x { margin-left: 2px; font-size: 15px; line-height: 1; color: var(--muted); }
+.chip:hover .chip-x { color: var(--danger); }
+.chips-clear { font-size: 13px; color: var(--muted); margin-left: 4px; }
 
 .box { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); }
 .box-head {
@@ -432,7 +449,7 @@ a.who:hover { text-decoration: underline; }
   width: 38px;
   height: 38px;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: 8px;
   background: transparent;
   color: var(--ink);
   cursor: pointer;

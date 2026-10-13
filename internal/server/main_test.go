@@ -104,3 +104,27 @@ func TestLikeEscapes(t *testing.T) {
 		t.Errorf("like = %q", got)
 	}
 }
+
+func TestChips(t *testing.T) {
+	f := parseFilter(`label:outage label:stale-data service:IRCTC author:anonymous sort:seen book now`)
+	f.Closed = true
+	var got []string
+	for _, c := range f.chips() {
+		got = append(got, c.Kind+"="+c.Value+" -> "+c.RemoveURL)
+	}
+	want := []string{
+		"label=Outage -> /?q=label%3Astale-data+service%3AIRCTC+author%3Aanonymous+sort%3Aseen+book+now&state=closed",
+		"label=Stale data -> /?q=label%3Aoutage+service%3AIRCTC+author%3Aanonymous+sort%3Aseen+book+now&state=closed",
+		"service=IRCTC -> /?q=label%3Aoutage+label%3Astale-data+author%3Aanonymous+sort%3Aseen+book+now&state=closed",
+		"author=anonymous -> /?q=label%3Aoutage+label%3Astale-data+service%3AIRCTC+sort%3Aseen+book+now&state=closed",
+		"sort=Broken longest -> /?q=label%3Aoutage+label%3Astale-data+service%3AIRCTC+author%3Aanonymous+book+now&state=closed",
+		"=book -> /?q=label%3Aoutage+label%3Astale-data+service%3AIRCTC+author%3Aanonymous+sort%3Aseen+now&state=closed",
+		"=now -> /?q=label%3Aoutage+label%3Astale-data+service%3AIRCTC+author%3Aanonymous+sort%3Aseen+book&state=closed",
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("chips:\n%s", strings.Join(got, "\n"))
+	}
+	if len(f.Words) != 2 || len(f.Labels) != 2 {
+		t.Errorf("chips() mutated the filter: %+v", f)
+	}
+}

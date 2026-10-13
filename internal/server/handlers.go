@@ -79,6 +79,8 @@ func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 	d := data{
 		"Home": true, "Issues": issues, "Filter": f, "Q": f.String(),
 		"Filtered":  f.String() != "",
+		"Chips":     f.chips(),
+		"ClearURL":  filter{Closed: f.Closed}.URL(1),
 		"OpenCount": open, "ClosedCount": closed,
 		"OpenURL": f.withClosed(false).URL(1), "ClosedURL": f.withClosed(true).URL(1),
 		"LabelMenu": labelMenu, "ServiceMenu": serviceMenu, "SortMenu": sortMenu,

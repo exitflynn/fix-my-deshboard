@@ -340,3 +340,48 @@ func (a *app) serviceCounts(ctx context.Context) ([]serviceCount, int, error) {
 	err = a.db.QueryRow(ctx, `SELECT count(*) FROM issues WHERE status = 'open' AND service = ''`).Scan(&unassigned)
 	return list, unassigned, err
 }
+
+// chip is one active filter shown under the search box, with a link that removes it.
+type chip struct {
+	Kind, Value, RemoveURL string
+}
+
+// chips lists the filter's parts as removable chips, in the order they appear in the query.
+func (f filter) chips() []chip {
+	var out []chip
+	for _, l := range f.Labels {
+		out = append(out, chip{"label", labelName(l), f.toggleLabel(l).URL(1)})
+	}
+	if f.Service != "" {
+		g := f
+		g.Service = ""
+		out = append(out, chip{"service", f.Service, g.URL(1)})
+	}
+	if f.Author != "" {
+		g := f
+		g.Author = ""
+		name := "@" + f.Author
+		if f.Author == "anonymous" {
+			name = "anonymous"
+		}
+		out = append(out, chip{"author", name, g.URL(1)})
+	}
+	if f.Site != "" {
+		g := f
+		g.Site = ""
+		out = append(out, chip{"site", f.Site, g.URL(1)})
+	}
+	if f.Sort != "" {
+		for _, s := range sorts {
+			if s.Key == f.Sort {
+				out = append(out, chip{"sort", s.Name, f.withSort("").URL(1)})
+			}
+		}
+	}
+	for i, w := range f.Words {
+		g := f
+		g.Words = slices.Delete(slices.Clone(f.Words), i, i+1)
+		out = append(out, chip{"", w, g.URL(1)})
+	}
+	return out
+}
