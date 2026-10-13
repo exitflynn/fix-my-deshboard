@@ -3,7 +3,9 @@
 A public record of what doesn't work on Indian government websites people use every day.
 Anyone can file an Issue: one specific broken thing, backed by what the site showed.
 
-Decisions and scope: [PLAN.md](PLAN.md).
+Decisions and scope: [docs/PLAN.md](docs/PLAN.md).
+
+Layout: `cmd/fixmydeshboard` (entry point), `internal/server` (all app code, schema, and `web/` templates and static files embedded into the binary), `deploy/` (Dockerfile, Caddyfile), `scripts/` (backup, dev seed).
 
 ## Run locally
 

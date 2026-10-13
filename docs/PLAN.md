@@ -4,7 +4,7 @@
 - File an Issue: anonymous or logged in. No contact field.
 - Accounts (optional): Sign in with Google, username chosen once on first login.
 - Front page = issues: tagline and big wordmark, then the issues list (1200px wide). The top bar is sticky;
-  its small logo stays hidden until the big one scrolls away (static/nav.js, the only JS). `/issues` redirects to `/`.
+  its small logo stays hidden until the big one scrolls away (internal/server/web/static/nav.js, the only JS). `/issues` redirects to `/`.
 - Browse by service (`/services`): each service with still-broken and closed counts, linking to its issues.
 - Issues list: bordered GitHub-style list. Each row: website/app, then the title and labels, then meta;
   a Service column on the right. Search box (`?q=`, magnifier icon, no button) takes
@@ -46,7 +46,7 @@ Not in v1: Wayback/archiving, hashing, automated checks, reproductions, full-tex
 - `id`, `issue_id`, `author_id` (NULL = anonymous), `body` (markdown), `status` (visible | removed), `likely_bot bool`, `created_at`, `edited_at`
 
 ## Rules
-- Schema changes after deploy go at the bottom of schema.sql as idempotent `ALTER ... IF NOT EXISTS`.
+- Schema changes after deploy go at the bottom of internal/server/schema.sql as idempotent `ALTER ... IF NOT EXISTS`.
 - `scripts/seed.sh` fills a local dev instance with examples (needs DEV_LOGIN=1, ADMIN_USERS=admin1).
 - Any government website or app can be reported; the form takes a free-text "Website link / App name" (links are clickable).
 - Label colours and display names: hard-coded maps in Go. The public never sees `triage`; `accepted` shows as "Verified ✓". Closing removes `triage`.

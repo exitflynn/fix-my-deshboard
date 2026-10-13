@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"bytes"
@@ -126,7 +126,7 @@ func parsePages() (map[string]*template.Template, error) {
 	pages := map[string]*template.Template{}
 	for _, name := range pageNames {
 		t, err := template.New("").Funcs(funcs).ParseFS(embedded,
-			"templates/layout.html", "templates/partials.html", "templates/"+name+".html")
+			"web/templates/layout.html", "web/templates/partials.html", "web/templates/"+name+".html")
 		if err != nil {
 			return nil, err
 		}

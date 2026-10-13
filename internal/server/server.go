@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-//go:embed schema.sql templates static
+//go:embed schema.sql web
 var embedded embed.FS
 
 // India has no DST, so a fixed zone is enough and avoids shipping tzdata.
@@ -34,7 +34,8 @@ type app struct {
 	commentLimit  *limiter
 }
 
-func main() {
+// Run reads configuration from the environment and serves until it fails.
+func Run() {
 	a := &app{
 		uploadDir:    env("UPLOAD_DIR", "uploads"),
 		baseURL:      env("BASE_URL", "http://localhost:8080"),
@@ -96,7 +97,7 @@ func main() {
 func (a *app) routes() http.Handler {
 	mux := http.NewServeMux()
 
-	static, _ := fs.Sub(embedded, "static")
+	static, _ := fs.Sub(embedded, "web/static")
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
 
 	mux.HandleFunc("GET /{$}", a.listIssues)
