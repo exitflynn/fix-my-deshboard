@@ -1,4 +1,4 @@
-module babu-log
+module fix-my-deshboard
 
 go 1.26.1
 

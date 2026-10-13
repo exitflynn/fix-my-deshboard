@@ -2,13 +2,13 @@ services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: babu
+      POSTGRES_USER: fixmydeshboard
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: babu
+      POSTGRES_DB: fixmydeshboard
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "babu"]
+      test: ["CMD", "pg_isready", "-U", "fixmydeshboard"]
       interval: 5s
       retries: 10
     restart: unless-stopped
@@ -16,7 +16,7 @@ services:
   app:
     build: .
     environment:
-      DATABASE_URL: postgres://babu:${POSTGRES_PASSWORD}@db:5432/babu?sslmode=disable
+      DATABASE_URL: postgres://fixmydeshboard:${POSTGRES_PASSWORD}@db:5432/fixmydeshboard?sslmode=disable
       BASE_URL: ${BASE_URL:-http://localhost:8080}
       ADMIN_USERS: ${ADMIN_USERS:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

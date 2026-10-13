@@ -23,7 +23,7 @@ Templates, CSS and the schema are embedded in the binary, so rebuild after chang
 On a VPS in India with Docker installed:
 
 ```sh
-git clone <repo> && cd babu-log
+git clone git@github.com:exitflynn/fix-my-deshboard.git && cd fix-my-deshboard
 cp .env.example .env   # DOMAIN, BASE_URL=https://<domain>, POSTGRES_PASSWORD, BACKUP_REMOTE,
                        # GOOGLE_CLIENT_ID/SECRET, ADMIN_USERS; remove DEV_LOGIN
 docker compose up -d --build
