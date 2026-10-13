@@ -95,7 +95,7 @@ func (a *app) listIssues(w http.ResponseWriter, r *http.Request) {
 }
 
 type issueForm struct {
-	Title, Site, SeenAt, SiteSaid, Body string
+	Title, Site, Service, SeenAt, SiteSaid, Body string
 }
 
 func (a *app) newIssue(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +106,12 @@ func (a *app) renderNewIssue(w http.ResponseWriter, r *http.Request, status int,
 	if len(errs) > 0 && r.MultipartForm != nil && len(r.MultipartForm.File["screenshots"]) > 0 {
 		errs = append(errs, "Please choose your screenshots again.")
 	}
-	a.render(w, r, status, "new", data{"Title": "Report a problem", "Form": f, "Errors": errs})
+	services, err := a.serviceOptions(r.Context())
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	a.render(w, r, status, "new", data{"Title": "Report a problem", "Form": f, "Errors": errs, "Services": services})
 }
 
 func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
@@ -128,6 +133,7 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 	f := issueForm{
 		Title:    strings.TrimSpace(r.FormValue("title")),
 		Site:     strings.TrimSpace(r.FormValue("site")),
+		Service:  strings.TrimSpace(r.FormValue("service")),
 		SeenAt:   r.FormValue("seen_at"),
 		SiteSaid: strings.TrimSpace(r.FormValue("site_said")),
 		Body:     strings.TrimSpace(r.FormValue("body")),
@@ -137,6 +143,17 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 	if len(errs) > 0 {
 		a.renderNewIssue(w, r, http.StatusUnprocessableEntity, f, errs)
 		return
+	}
+
+	// The reporter's pick, matched to an existing service's spelling; if empty, guessed for
+	// well-known sites, otherwise left for admins.
+	service, err := a.canonicalService(r.Context(), f.Service)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	if service == "" {
+		service = guessService(f.Site)
 	}
 
 	shots := []string{} // non-nil: a nil slice is sent as NULL
@@ -156,8 +173,8 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 
 	id, err := a.insertIssue(r.Context(), Issue{
 		AuthorID: userID(r),
-		Title:    f.Title, Site: f.Site, Service: guessService(f.Site), SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
-		Labels: []string{"triage"}, Screenshots: shots,
+		Title:    f.Title, Site: f.Site, Service: service, SiteSaid: f.SiteSaid, Body: f.Body, SeenAt: seenAt,
+		Labels: issueLabels(r.FormValue("agent") == "1"), Screenshots: shots,
 		LikelyBot: r.FormValue("homepage") != "",
 	})
 	if err != nil {
@@ -193,6 +210,9 @@ func validateIssue(f issueForm, nFiles int) (time.Time, []string) {
 	seenAt, err := time.ParseInLocation("2006-01-02T15:04", f.SeenAt, ist)
 	if err != nil || seenAt.After(time.Now().Add(10*time.Minute)) {
 		errs = append(errs, "Add when you saw it (not in the future).")
+	}
+	if utf8.RuneCountInString(f.Service) > 60 {
+		errs = append(errs, "Keep the service name under 60 characters.")
 	}
 	if utf8.RuneCountInString(f.SiteSaid) > 5000 {
 		errs = append(errs, "Keep 'What the site said' under 5,000 characters.")
@@ -431,4 +451,13 @@ func (a *app) setTheme(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	http.Redirect(w, r, safeNext(r.FormValue("back")), http.StatusSeeOther)
+}
+
+// issueLabels are the labels a new issue starts with. Reports by AI agents (they tick a
+// checkbox only they see) are labelled agent.
+func issueLabels(byAgent bool) []string {
+	if byAgent {
+		return []string{"triage", "agent"}
+	}
+	return []string{"triage"}
 }

@@ -322,6 +322,17 @@ a.pill:hover { border-color: var(--line-strong); }
 .list-plain > li { padding: 14px 0; border-bottom: 1px solid var(--line); }
 .list-plain > li:last-child { border-bottom: 0; padding-bottom: 0; }
 
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 .hp { position: absolute !important; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
 input[type="file"] { font: inherit; font-size: 14px; color: var(--muted); max-width: 100%; }

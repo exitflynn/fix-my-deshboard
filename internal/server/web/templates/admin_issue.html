@@ -21,7 +21,7 @@
     <label for="service">Service</label>
     <input class="input" id="service" name="service" value="{{.Issue.Service}}" list="services" placeholder="e.g. IRCTC">
     <datalist id="services">{{range .Services}}<option value="{{.}}">{{end}}</datalist>
-    <p class="note">Shown in the list's Service column and filter. Leave empty if unsure.</p>
+    <p class="note">Pick an existing service or type a new one. Shown in the list's Service column and filter.</p>
   </div>
   <div class="field">
     <label for="labels">Labels</label>

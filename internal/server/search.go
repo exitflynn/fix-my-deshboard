@@ -385,3 +385,37 @@ func (f filter) chips() []chip {
 	}
 	return out
 }
+
+// serviceOptions is the list offered when picking a service: those in use plus well-known ones.
+func (a *app) serviceOptions(ctx context.Context) ([]string, error) {
+	services, err := a.usedServices(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range serviceHosts {
+		if !slices.ContainsFunc(services, func(x string) bool { return strings.EqualFold(x, s) }) {
+			services = append(services, s)
+		}
+	}
+	slices.SortFunc(services, func(x, y string) int { return strings.Compare(strings.ToLower(x), strings.ToLower(y)) })
+	return services, nil
+}
+
+// canonicalService tidies a typed service name and reuses an existing service's spelling
+// when it matches ignoring case, so "irctc" doesn't become a second IRCTC.
+func (a *app) canonicalService(ctx context.Context, s string) (string, error) {
+	s = strings.Join(strings.Fields(s), " ")
+	if s == "" {
+		return "", nil
+	}
+	options, err := a.serviceOptions(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, o := range options {
+		if strings.EqualFold(o, s) {
+			return o, nil
+		}
+	}
+	return s, nil
+}

@@ -17,11 +17,12 @@ import (
 
 // Labels admins commonly use, with colours and public display names. Others work too
 // (grey, shown as written).
-var knownLabels = []string{"triage", "accepted", "outage", "misleading-ui", "stale-data", "broken-table"}
+var knownLabels = []string{"triage", "accepted", "agent", "outage", "misleading-ui", "stale-data", "broken-table"}
 
 var labelColors = map[string]string{
 	"triage":        "#d4a017",
 	"accepted":      "#2f8f46",
+	"agent":         "#8a6fd1",
 	"outage":        "#d73a4a",
 	"misleading-ui": "#e0a800",
 	"stale-data":    "#6aa6d8",
