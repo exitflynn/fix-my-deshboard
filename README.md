@@ -3,9 +3,7 @@
 A public record of what doesn't work on Indian government websites people use every day.
 Anyone can file an Issue: one specific broken thing, backed by what the site showed.
 
-Decisions and scope: [docs/PLAN.md](docs/PLAN.md).
-
-Layout: `cmd/fixmydeshboard` (entry point), `internal/server` (all app code, schema, and `web/` templates and static files embedded into the binary), `deploy/` (Dockerfile, Caddyfile), `scripts/` (backup, dev seed).
+Layout: `cmd/fixmydeshboard` (entry point), `internal/server` (all app code, schema, and `web/` templates and static files embedded into the binary), `deploy/` (Dockerfile, Render blueprint, Caddyfile for self-hosting), `scripts/` (backup, dev seed).
 
 ## Run locally
 
@@ -22,9 +20,18 @@ Templates, CSS and the schema are embedded in the binary, so rebuild after chang
 
 ## Deploy
 
-Free hosting on an Oracle Cloud Always Free VM with a DuckDNS subdomain: see
-[docs/DEPLOY.md](docs/DEPLOY.md). On the server it's one command:
+On [Render](https://render.com): **New → Blueprint**, pick this repo, Blueprint path
+`deploy/render.yaml`. It creates the web service and a Postgres database (free plans,
+Singapore). Screenshots are stored in Postgres, so no disk is needed.
 
-```sh
-DOMAIN=fixmydeshboard.duckdns.org bash scripts/server-setup.sh
-```
+Settings (environment variables):
+
+| Variable | |
+|---|---|
+| `DATABASE_URL` | Postgres connection string (set by the blueprint) |
+| `BASE_URL` | Public URL; on Render it's detected automatically |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional. Turns on login; redirect URI is `<BASE_URL>/auth/callback` |
+| `ADMIN_USERS` | Comma-separated usernames with admin rights |
+| `BEHIND_PROXY` | `1` when behind a proxy that sets `X-Forwarded-For` |
+
+Self-hosting instead: `docker compose up -d` with `DOMAIN` set in `.env` (Caddy gets HTTPS).

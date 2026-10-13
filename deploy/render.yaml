@@ -1,0 +1,34 @@
+# Render Blueprint: the web service and its Postgres database on the free plan.
+# New > Blueprint, pick this repo, and set the Blueprint path to deploy/render.yaml.
+databases:
+  - name: fix-my-deshboard-db
+    plan: free
+    region: singapore
+    databaseName: fixmydeshboard
+    user: fixmydeshboard
+    postgresMajorVersion: "17"
+
+services:
+  - type: web
+    name: fix-my-deshboard
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fix-my-deshboard-db
+          property: connectionString
+      - key: BEHIND_PROXY
+        value: "1"
+      # Optional: fill in to turn on login and admin.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ADMIN_USERS
+        sync: false

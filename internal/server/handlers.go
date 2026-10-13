@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -140,9 +139,9 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 
 	shots := []string{} // non-nil: a nil slice is sent as NULL
 	for _, fh := range files {
-		name, err := saveScreenshot(a.uploadDir, fh)
+		name, err := a.saveScreenshot(r.Context(), fh)
 		if err != nil {
-			removeScreenshots(a.uploadDir, shots)
+			a.removeScreenshots(r.Context(), shots)
 			if errors.Is(err, errBadImage) {
 				a.renderNewIssue(w, r, http.StatusUnprocessableEntity, f, []string{err.Error()})
 			} else {
@@ -160,7 +159,7 @@ func (a *app) createIssue(w http.ResponseWriter, r *http.Request) {
 		LikelyBot: r.FormValue("homepage") != "",
 	})
 	if err != nil {
-		removeScreenshots(a.uploadDir, shots)
+		a.removeScreenshots(r.Context(), shots)
 		a.serverError(w, r, err)
 		return
 	}
@@ -389,25 +388,7 @@ func (a *app) deleteComment(w http.ResponseWriter, r *http.Request) {
 
 // serveUpload serves a screenshot unless its issue has been removed.
 func (a *app) serveUpload(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
-	if !screenshotName.MatchString(name) {
-		a.notFound(w, r)
-		return
-	}
-	var public bool
-	err := a.db.QueryRow(r.Context(), `
-		SELECT EXISTS (SELECT 1 FROM issues WHERE $1 = ANY (screenshots) AND status <> 'removed')`,
-		name).Scan(&public)
-	if err != nil {
-		a.serverError(w, r, err)
-		return
-	}
-	if !public {
-		a.notFound(w, r)
-		return
-	}
-	w.Header().Set("Cache-Control", "public, max-age=3600")
-	http.ServeFile(w, r, filepath.Join(a.uploadDir, name))
+	a.writeScreenshot(w, r, true)
 }
 
 func looksLikeURL(s string) bool {

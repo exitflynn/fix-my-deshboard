@@ -25,8 +25,6 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       DEV_LOGIN: ${DEV_LOGIN:-}
       BEHIND_PROXY: "1"
-    volumes:
-      - uploads:/data/uploads
     ports:
       - "127.0.0.1:8080:8080" # for local dev; the public goes through caddy
     depends_on:
@@ -50,5 +48,4 @@ services:
 
 volumes:
   pgdata:
-  uploads:
   caddy_data:

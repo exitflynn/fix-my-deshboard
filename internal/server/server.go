@@ -23,7 +23,6 @@ var ist = time.FixedZone("IST", 5*3600+30*60)
 type app struct {
 	db            *pgxpool.Pool
 	pages         map[string]*template.Template
-	uploadDir     string
 	baseURL       string
 	adminUsers    []string
 	google        *googleAuth
@@ -37,8 +36,7 @@ type app struct {
 // Run reads configuration from the environment and serves until it fails.
 func Run() {
 	a := &app{
-		uploadDir:    env("UPLOAD_DIR", "uploads"),
-		baseURL:      env("BASE_URL", "http://localhost:8080"),
+		baseURL:      env("BASE_URL", env("RENDER_EXTERNAL_URL", "http://localhost:8080")),
 		devLogin:     os.Getenv("DEV_LOGIN") == "1",
 		behindProxy:  os.Getenv("BEHIND_PROXY") == "1",
 		issueLimit:   newLimiter(5, time.Hour),
@@ -75,14 +73,14 @@ func Run() {
 	}
 	a.db = db
 
-	if err := os.MkdirAll(a.uploadDir, 0o755); err != nil {
-		log.Fatal(err)
-	}
 	if a.pages, err = parsePages(); err != nil {
 		log.Fatal(err)
 	}
 
 	addr := env("ADDR", ":8080")
+	if p := os.Getenv("PORT"); p != "" && os.Getenv("ADDR") == "" {
+		addr = ":" + p // hosts like Render say which port to listen on
+	}
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           a.routes(),

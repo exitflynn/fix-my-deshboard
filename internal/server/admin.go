@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -178,7 +177,7 @@ func (a *app) adminRemoveScreenshot(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
-	removeScreenshots(a.uploadDir, []string{name})
+	a.removeScreenshots(r.Context(), []string{name})
 	http.Redirect(w, r, fmt.Sprintf("/admin/issues/%d", issue.ID), http.StatusSeeOther)
 }
 
@@ -201,10 +200,5 @@ func (a *app) adminCommentAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) adminServeUpload(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
-	if !screenshotName.MatchString(name) {
-		a.notFound(w, r)
-		return
-	}
-	http.ServeFile(w, r, filepath.Join(a.uploadDir, name))
+	a.writeScreenshot(w, r, false)
 }

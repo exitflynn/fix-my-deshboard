@@ -43,5 +43,12 @@ CREATE TABLE IF NOT EXISTS comments (
 
 CREATE INDEX IF NOT EXISTS comments_issue_id ON comments (issue_id);
 
+CREATE TABLE IF NOT EXISTS screenshots (
+    name         text PRIMARY KEY, -- referenced from issues.screenshots
+    content_type text NOT NULL,
+    data         bytea NOT NULL,
+    created_at   timestamptz NOT NULL DEFAULT now()
+);
+
 -- Columns added after the first deploy. Keep these idempotent.
 ALTER TABLE issues ADD COLUMN IF NOT EXISTS service text NOT NULL DEFAULT '';

@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -10,26 +11,32 @@ import (
 	"image/png"
 	"io"
 	"mime/multipart"
-	"os"
-	"path/filepath"
+	"net/http"
 	"regexp"
+	"time"
 
+	"golang.org/x/image/draw"
 	_ "golang.org/x/image/webp" // registers the WebP decoder
 )
+
+// Screenshots are stored in Postgres rather than on disk, so the app runs on hosts without a
+// persistent disk and backups include them.
 
 const (
 	maxScreenshots     = 3
 	maxScreenshotBytes = 5 << 20
 	maxPixels          = 40_000_000
+	maxScreenshotWidth = 1400 // wider images are scaled down to save space and visitors' data
 )
 
 var screenshotName = regexp.MustCompile(`^[0-9a-f]{32}\.(png|jpg)$`)
 
 var errBadImage = errors.New("Screenshots must be PNG, JPEG or WebP images under 5 MB.")
 
-// saveScreenshot decodes and re-encodes the upload, which drops EXIF data
-// (GPS location, device model) that could identify an anonymous submitter.
-func saveScreenshot(dir string, fh *multipart.FileHeader) (string, error) {
+// saveScreenshot decodes and re-encodes the upload, which drops EXIF data (GPS location,
+// device model) that could identify an anonymous submitter, scales it down if it's very
+// wide, and stores it. It returns the screenshot's name.
+func (a *app) saveScreenshot(ctx context.Context, fh *multipart.FileHeader) (string, error) {
 	if fh.Size > maxScreenshotBytes {
 		return "", errBadImage
 	}
@@ -57,28 +64,59 @@ func saveScreenshot(dir string, fh *multipart.FileHeader) (string, error) {
 	if err != nil {
 		return "", errBadImage
 	}
+	if b := img.Bounds(); b.Dx() > maxScreenshotWidth {
+		h := b.Dy() * maxScreenshotWidth / b.Dx()
+		dst := image.NewRGBA(image.Rect(0, 0, maxScreenshotWidth, h))
+		draw.CatmullRom.Scale(dst, dst.Bounds(), img, b, draw.Src, nil)
+		img = dst
+	}
 
 	id := make([]byte, 16)
 	rand.Read(id)
-	name := hex.EncodeToString(id) + ".png"
-	if format == "jpeg" {
-		name = hex.EncodeToString(id) + ".jpg"
-	}
-
 	var out bytes.Buffer
+	name, contentType := hex.EncodeToString(id)+".png", "image/png"
 	if format == "jpeg" {
-		err = jpeg.Encode(&out, img, &jpeg.Options{Quality: 90})
+		name, contentType = hex.EncodeToString(id)+".jpg", "image/jpeg"
+		err = jpeg.Encode(&out, img, &jpeg.Options{Quality: 85})
 	} else {
 		err = png.Encode(&out, img)
 	}
 	if err != nil {
 		return "", err
 	}
-	return name, os.WriteFile(filepath.Join(dir, name), out.Bytes(), 0o644)
+	_, err = a.db.Exec(ctx, `INSERT INTO screenshots (name, content_type, data) VALUES ($1, $2, $3)`,
+		name, contentType, out.Bytes())
+	return name, err
 }
 
-func removeScreenshots(dir string, names []string) {
-	for _, n := range names {
-		os.Remove(filepath.Join(dir, n))
+func (a *app) removeScreenshots(ctx context.Context, names []string) {
+	if len(names) > 0 {
+		a.db.Exec(ctx, `DELETE FROM screenshots WHERE name = ANY ($1)`, names)
 	}
+}
+
+// writeScreenshot serves a stored screenshot. publicOnly hides ones whose issue was removed.
+func (a *app) writeScreenshot(w http.ResponseWriter, r *http.Request, publicOnly bool) {
+	name := r.PathValue("name")
+	if !screenshotName.MatchString(name) {
+		a.notFound(w, r)
+		return
+	}
+	var contentType string
+	var data []byte
+	var created time.Time
+	err := a.db.QueryRow(r.Context(), `
+		SELECT s.content_type, s.data, s.created_at FROM screenshots s
+		WHERE s.name = $1 AND (NOT $2 OR EXISTS (
+			SELECT 1 FROM issues i WHERE s.name = ANY (i.screenshots) AND i.status <> 'removed'))`,
+		name, publicOnly).Scan(&contentType, &data, &created)
+	if err != nil {
+		a.notFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", contentType)
+	if publicOnly {
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+	}
+	http.ServeContent(w, r, name, created, bytes.NewReader(data))
 }
