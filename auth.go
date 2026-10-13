@@ -232,7 +232,7 @@ func (a *app) logout(w http.ResponseWriter, r *http.Request) {
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9_-]{3,30}$`)
 
-var reservedUsernames = []string{"admin", "anonymous", "babu-log", "deleted-user", "moderator"}
+var reservedUsernames = []string{"admin", "anonymous", "babu-log", "fixmydeshboard", "deleted-user", "moderator"}
 
 func (a *app) welcome(w http.ResponseWriter, r *http.Request) {
 	if currentUser(r) != nil {

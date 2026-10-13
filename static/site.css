@@ -463,7 +463,7 @@ a.who:hover { text-decoration: underline; }
 
 .hero { text-align: center; padding: 48px 0 64px; }
 .hero .tagline { font-family: var(--serif); font-size: clamp(19px, 2.6vw, 25px); color: var(--muted); margin: 0 auto 18px; max-width: 36ch; text-wrap: balance; }
-.hero-mark { display: block; font-size: clamp(56px, 12vw, 128px); line-height: 1; letter-spacing: -0.04em; }
+.hero-mark { display: block; font-size: clamp(36px, 8.6vw, 112px); line-height: 1; letter-spacing: -0.04em; }
 @media (max-width: 700px) { .hero { padding: 28px 0 44px; } }
 
 .section-title { font-size: 28px; }

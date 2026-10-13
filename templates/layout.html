@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>{{with .Title}}{{.}} · {{end}}babu-log</title>
-  <meta property="og:site_name" content="babu-log">
-  <meta property="og:title" content="{{with .OGTitle}}{{.}}{{else}}{{with .Title}}{{.}}{{else}}babu-log{{end}}{{end}}">
+  <title>{{with .Title}}{{.}} · {{end}}FixMyDeshboard</title>
+  <meta property="og:site_name" content="FixMyDeshboard">
+  <meta property="og:title" content="{{with .OGTitle}}{{.}}{{else}}{{with .Title}}{{.}}{{else}}FixMyDeshboard{{end}}{{end}}">
   {{with .Description}}<meta name="description" content="{{.}}"><meta property="og:description" content="{{.}}">{{end}}
   {{with .Image}}<meta property="og:image" content="{{.}}"><meta name="twitter:card" content="summary_large_image">{{end}}
   <link rel="preload" href="/static/fonts/newsreader-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -19,7 +19,7 @@
 <body>
 <div class="topbar">
   <header class="site-header">
-    <a href="/" class="wordmark">babu-log</a>
+    <a href="/" class="wordmark">FixMyDeshboard</a>
     <nav class="site-nav" aria-label="Main">
       <a href="/"{{if or .Home (and .Path (hasPrefix .Path "/issues/") (not (hasPrefix .Path "/issues/new")))}} class="active"{{end}}>Issues</a>
       <a href="/services"{{if and .Path (hasPrefix .Path "/services")}} class="active"{{end}}>Browse by service</a>
