@@ -140,6 +140,7 @@ type data map[string]any
 // render executes a page. r may be nil; when set, the logged-in user is passed as .User.
 func (a *app) render(w http.ResponseWriter, r *http.Request, status int, page string, d data) {
 	d["User"] = currentUser(r)
+	d["LoginEnabled"] = a.google != nil || a.devLogin
 	if r != nil {
 		d["Path"] = r.URL.RequestURI()
 		if c, err := r.Cookie("theme"); err == nil && (c.Value == "light" || c.Value == "dark") {

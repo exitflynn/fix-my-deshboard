@@ -139,6 +139,10 @@ type oauthState struct {
 func (a *app) login(w http.ResponseWriter, r *http.Request) {
 	next := safeNext(r.FormValue("next"))
 	if a.google == nil {
+		if !a.devLogin {
+			a.renderError(w, r, http.StatusNotFound, "Logging in isn't available yet. You can still report problems and comment anonymously.")
+			return
+		}
 		a.render(w, r, http.StatusOK, "login", data{"Title": "Log in", "Next": next})
 		return
 	}

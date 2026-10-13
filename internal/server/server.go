@@ -66,7 +66,7 @@ func Run() {
 	case a.devLogin:
 		log.Print("DEV_LOGIN is on: anyone can log in as any name")
 	case a.google == nil:
-		log.Fatal("set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or DEV_LOGIN=1 for local development")
+		log.Print("login is off: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable it (anonymous posting still works)")
 	}
 
 	db, err := connect(ctx, env("DATABASE_URL", "postgres://fixmydeshboard:fixmydeshboard@localhost:5432/fixmydeshboard?sslmode=disable"))

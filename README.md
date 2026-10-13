@@ -22,22 +22,9 @@ Templates, CSS and the schema are embedded in the binary, so rebuild after chang
 
 ## Deploy
 
-On a VPS in India with Docker installed:
+Free hosting on an Oracle Cloud Always Free VM with a DuckDNS subdomain: see
+[docs/DEPLOY.md](docs/DEPLOY.md). On the server it's one command:
 
 ```sh
-git clone git@github.com:exitflynn/fix-my-deshboard.git && cd fix-my-deshboard
-cp .env.example .env   # DOMAIN, BASE_URL=https://<domain>, POSTGRES_PASSWORD, BACKUP_REMOTE,
-                       # GOOGLE_CLIENT_ID/SECRET, ADMIN_USERS; remove DEV_LOGIN
-docker compose up -d --build
+DOMAIN=fixmydeshboard.duckdns.org bash scripts/server-setup.sh
 ```
-
-Point the domain's DNS at the VPS first; Caddy fetches the HTTPS certificate on its own.
-
-Google sign-in: in Google Cloud Console, create an OAuth client of type "Web application" with
-redirect URI `https://<domain>/auth/callback`. Only the `openid` scope is requested, so the
-consent screen asks for nothing beyond "sign in".
-
-Update with `git pull && docker compose up -d --build`.
-
-Backups: install [rclone](https://rclone.org), configure a remote (e.g. Cloudflare R2), set
-`BACKUP_REMOTE`, and add `scripts/backup.sh` to cron (example in the script).
