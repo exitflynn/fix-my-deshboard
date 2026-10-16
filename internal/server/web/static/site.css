@@ -127,8 +127,11 @@ img { max-width: 100%; }
 .rule { border: 0; border-top: 1px dashed var(--line-strong); margin: 0; }
 
 @media (max-width: 700px) {
-  .site-header { grid-template-columns: 1fr auto; padding: 14px 16px; row-gap: 12px; }
-  .site-nav { grid-row: 2; grid-column: 1 / -1; gap: 20px; }
+  .site-header { grid-template-columns: 1fr auto; padding: 14px 16px; row-gap: 8px; column-gap: 12px; }
+  .site-header .wordmark { grid-column: 1 / -1; }
+  .site-nav { gap: 18px; }
+  /* On phones the bar scrolls away, so the front page leaves the logo to the hero. */
+  .home .site-header .wordmark { display: none; }
 }
 
 .page { max-width: 880px; margin: 0 auto; padding: 44px 24px 80px; }
