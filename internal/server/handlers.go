@@ -269,7 +269,7 @@ func (a *app) renderIssue(w http.ResponseWriter, r *http.Request, issue Issue, s
 		a.serverError(w, r, err)
 		return
 	}
-	d["Title"] = fmt.Sprintf("%s · Issue #%d", issue.Title, issue.ID)
+	d["Title"] = issue.Title
 	d["OGTitle"] = issue.Title // WhatsApp truncates long preview titles
 	link := fmt.Sprintf("%s/issues/%d", strings.TrimRight(a.baseURL, "/"), issue.ID)
 	d["WhatsApp"] = "https://wa.me/?text=" + strings.ReplaceAll(url.QueryEscape(issue.Title+"\n"+link), "+", "%20")

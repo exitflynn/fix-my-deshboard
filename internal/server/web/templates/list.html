@@ -68,8 +68,8 @@
         {{range publicLabels .Labels}}{{template "label" .}}{{end}}
       </div>
       <div class="row-meta">
-        #{{.ID}} · seen {{day .SeenAt}} ·
-        {{with .AuthorName}}<a href="{{authorURL .}}">@{{.}}</a>{{else}}anonymous{{end}}
+        {{day .SeenAt}}
+        {{with .AuthorName}}· <a href="{{authorURL .}}">@{{.}}</a>{{end}}
         {{with .Service}}<span class="svc-inline">· <a href="{{serviceURL .}}">{{.}}</a></span>{{end}}
       </div>
     </div>

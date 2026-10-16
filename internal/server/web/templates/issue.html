@@ -1,6 +1,6 @@
 {{define "content"}}
 <header class="issue-head">
-  <h1>{{.Issue.Title}} <span class="num">#{{.Issue.ID}}</span></h1>
+  <h1>{{.Issue.Title}}</h1>
   <div class="meta">
     {{template "state" .Issue.Status}}
     <span>{{len .Comments}} comment{{if ne (len .Comments) 1}}s{{end}}</span>

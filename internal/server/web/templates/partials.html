@@ -18,7 +18,7 @@
 {{define "issueBody"}}{{$base := .ShotBase}}{{with .Issue}}
 <section class="record">
   <div class="record-head">
-    <span>Reported by</span>{{template "author" .AuthorName}}{{if isModerator .AuthorName}}<span class="tag">Moderator</span>{{end}}
+    {{with .AuthorName}}<span>Reported by</span>{{template "author" .}}{{if isModerator .}}<span class="tag">Moderator</span>{{end}}{{else}}<span>Reported</span>{{end}}
     <span>on {{day .CreatedAt}}{{with .EditedAt}} · edited {{day .}}{{end}}</span>
     <span class="tools">
       {{if isAuthor $.User .AuthorID}}<a class="linkbtn" href="/issues/{{.ID}}/edit">Edit</a>{{end}}
@@ -30,13 +30,13 @@
       {{end}}
     </span>
   </div>
-  {{with .SiteSaid}}<div class="said-label">The site said (seen {{date $.Issue.SeenAt}}):</div><pre class="said">{{.}}</pre>{{end}}
+  {{with .SiteSaid}}<div class="said-label">The site said on {{date $.Issue.SeenAt}}:</div><pre class="said">{{.}}</pre>{{end}}
   <dl class="facts">
     <dt>Where</dt><dd>{{template "site" .Site}}</dd>
-    {{if not .SiteSaid}}<dt>Seen</dt><dd>{{date .SeenAt}}</dd>{{end}}
+    {{if not .SiteSaid}}<dt>When</dt><dd>{{date .SeenAt}}</dd>{{end}}
   </dl>
   {{with .Body}}<div class="prose">{{md .}}</div>{{end}}
-  {{with .Screenshots}}<div class="shots">{{range .}}<a href="{{$base}}{{.}}" target="_blank"><img src="{{$base}}{{.}}" alt="Screenshot of {{$.Issue.Site}} as seen {{date $.Issue.SeenAt}}" loading="lazy"></a>{{end}}</div>{{end}}
+  {{with .Screenshots}}<div class="shots">{{range .}}<a href="{{$base}}{{.}}" target="_blank"><img src="{{$base}}{{.}}" alt="Screenshot of {{$.Issue.Site}} on {{date $.Issue.SeenAt}}" loading="lazy"></a>{{end}}</div>{{end}}
 </section>
 {{end}}{{end}}
 
@@ -44,7 +44,7 @@
 {{define "comment"}}{{$c := .C}}
 <article class="comment{{if isModerator $c.AuthorName}} mod{{end}}" id="comment-{{$c.ID}}">
   <div class="comment-head">
-    {{template "author" $c.AuthorName}}{{if isModerator $c.AuthorName}}<span class="tag">Moderator</span>{{end}}
+    {{with $c.AuthorName}}{{template "author" .}}{{end}}{{if isModerator $c.AuthorName}}<span class="tag">Moderator</span>{{end}}
     <span>{{date $c.CreatedAt}}{{with $c.EditedAt}} · edited{{end}}</span>
     {{if ne $c.Status "visible"}}<span class="tag warn">{{$c.Status}}</span>{{end}}
     {{if $c.LikelyBot}}<span class="tag danger">likely bot</span>{{end}}

@@ -1,6 +1,6 @@
 {{define "content"}}
 <div class="page-narrow">
-  <h1 class="page-title mb-2">Edit issue #{{.Issue.ID}}</h1>
+  <h1 class="page-title mb-2">Edit issue</h1>
   <p class="muted mb-3">You can change the title and details. The website or app, time seen, what the site said and screenshots are the record and can't be changed. Post a comment to correct them.</p>
   {{with .Errors}}<div class="flash flash-error" role="alert">{{range .}}<div>{{.}}</div>{{end}}</div>{{end}}
   <form method="post" action="/issues/{{.Issue.ID}}/edit">
