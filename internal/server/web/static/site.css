@@ -487,6 +487,7 @@ a.who:hover { text-decoration: underline; }
 /* Sticky top bar. On the front page the small logo hides while the big one is visible. */
 .topbar { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px dashed var(--line-strong); transition: border-color 0.2s; }
 .hero-visible .topbar { border-bottom-color: transparent; }
+@media (max-width: 700px) { .topbar { position: static; } }
 .hero-visible .site-header .wordmark { opacity: 0; visibility: hidden; transform: translateY(6px); }
 
 .hero { text-align: center; padding: 48px 0 64px; }
